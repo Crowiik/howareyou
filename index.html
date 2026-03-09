@@ -1,1237 +1,2325 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Work Schedule</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface-hover: #22262f;
-    --border: #2a2e3a;
-    --text: #e4e6ed;
-    --text-dim: #8b8fa3;
-    --accent-blue: #4e8fff;
-    --accent-green: #34d399;
-    --accent-amber: #f59e0b;
-    --accent-rose: #f472b6;
-    --accent-purple: #a78bfa;
-    --radius: 12px;
-    --radius-sm: 8px;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(15, 17, 23, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 20px 12px;
-  }
-
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
-
-  .logo {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .logo-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  .logo-dot.live { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
-  .logo-dot.offline { background: var(--accent-amber); box-shadow: 0 0 8px var(--accent-amber); }
-  .logo-dot.error { background: var(--accent-rose); box-shadow: 0 0 8px var(--accent-rose); }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-
-  .refresh-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 6px 12px;
-    border-radius: 100px;
-    font-family: inherit;
-    font-size: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    transition: all 0.2s;
-  }
-
-  .refresh-btn:hover { border-color: var(--accent-blue); color: var(--text); }
-
-  .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .search-wrap { position: relative; }
-
-  .search-icon {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-dim);
-    pointer-events: none;
-  }
-
-  .search {
-    width: 100%;
-    padding: 12px 14px 12px 42px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 15px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .search:focus { border-color: var(--accent-blue); }
-  .search::placeholder { color: var(--text-dim); }
-
-  .search-hint {
-    margin-top: 6px;
-    font-size: 12px;
-    color: var(--text-dim);
-    display: none;
-  }
-
-  .search-hint.visible { display: block; }
-
-  /* --- MANAGER FILTER --- */
-  .filter-bar {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    padding: 10px 20px 2px;
-  }
-
-  .filter-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    display: flex;
-    align-items: center;
-    margin-right: 4px;
-  }
-
-  .filter-chip {
-    padding: 6px 14px;
-    border-radius: 100px;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: inherit;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-dim);
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .filter-chip:hover { background: var(--surface); color: var(--text); }
-
-  .filter-chip.active {
-    background: rgba(78, 143, 255, 0.12);
-    color: var(--accent-blue);
-    border-color: rgba(78, 143, 255, 0.3);
-  }
-
-  .filter-chip .chip-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .filter-chip .chip-count {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    opacity: 0.6;
-  }
-
-  .date-tabs {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    padding: 12px 20px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .date-tabs::-webkit-scrollbar { display: none; }
-
-  .date-tab {
-    flex-shrink: 0;
-    padding: 8px 16px;
-    border-radius: 100px;
-    font-size: 13px;
-    font-weight: 600;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-dim);
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
-
-  .date-tab:hover { background: var(--surface); color: var(--text); }
-
-  .date-tab.active {
-    background: var(--accent-blue);
-    color: #fff;
-    border-color: var(--accent-blue);
-  }
-
-  .date-tab .tab-day {
-    display: block;
-    font-size: 10px;
-    font-weight: 500;
-    opacity: 0.7;
-    text-transform: uppercase;
-    margin-bottom: 1px;
-  }
-
-  .content {
-    padding: 8px 16px 100px;
-    max-width: 640px;
-    margin: 0 auto;
-  }
-
-  .team-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: 12px;
-    overflow: hidden;
-    animation: fadeUp 0.35s ease both;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .team-header {
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    transition: background 0.15s;
-  }
-
-  .team-header:hover { background: var(--surface-hover); }
-
-  .team-header-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .toggle-icon {
-    width: 20px;
-    height: 20px;
-    color: var(--text-dim);
-    transition: transform 0.25s ease;
-    flex-shrink: 0;
-  }
-
-  .team-card.collapsed .toggle-icon {
-    transform: rotate(-90deg);
-  }
-
-  .team-body {
-    overflow: hidden;
-    transition: grid-template-rows 0.3s ease;
-    display: grid;
-    grid-template-rows: 1fr;
-  }
-
-  .team-card.collapsed .team-body {
-    grid-template-rows: 0fr;
-  }
-
-  .team-body-inner {
-    overflow: hidden;
-  }
-
-  .team-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .team-color {
-    width: 4px;
-    height: 32px;
-    border-radius: 4px;
-  }
-
-  .team-name {
-    font-weight: 700;
-    font-size: 15px;
-    line-height: 1.2;
-  }
-
-  .team-meta {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 2px;
-  }
-
-  .team-badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 4px 10px;
-    border-radius: 100px;
-    background: rgba(78, 143, 255, 0.12);
-    color: var(--accent-blue);
-  }
-
-  .location-bar {
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-size: 13px;
-    color: var(--text-dim);
-    background: rgba(255,255,255,0.02);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .location-bar span {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  .worker-list { padding: 4px 0; }
-
-  .worker-row {
-    display: flex;
-    align-items: center;
-    padding: 10px 16px;
-    gap: 12px;
-    transition: background 0.15s;
-  }
-
-  .worker-row:hover { background: var(--surface-hover); }
-
-  .worker-row.highlighted {
-    background: rgba(78, 143, 255, 0.08);
-    position: relative;
-  }
-
-  .worker-row.highlighted::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    background: var(--accent-blue);
-  }
-
-  .worker-num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--text-dim);
-    width: 20px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-
-  .worker-avatar {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 12px;
-    flex-shrink: 0;
-    color: #fff;
-  }
-
-  .worker-info { flex: 1; min-width: 0; }
-
-  .worker-name-row {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    min-width: 0;
-  }
-
-  .worker-name {
-    font-weight: 600;
-    font-size: 14px;
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .worker-id {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    flex-shrink: 0;
-  }
-
-  .worker-meta {
-    display: flex;
-    gap: 10px;
-    margin-top: 3px;
-    flex-wrap: wrap;
-  }
-
-  .worker-meta-item {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 11px;
-    line-height: 1;
-  }
-
-  .worker-meta-item .meta-icon {
-    font-size: 10px;
-    flex-shrink: 0;
-  }
-
-  .worker-farm {
-    color: var(--accent-green);
-    font-weight: 500;
-  }
-
-  .worker-gang {
-    color: var(--accent-purple);
-    font-weight: 500;
-  }
-
-  .worker-time {
-    color: var(--accent-amber);
-    font-weight: 500;
-  }
-
-  .worker-details {
-    text-align: right;
-    flex-shrink: 0;
-    max-width: 140px;
-  }
-
-  .worker-detail-row {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
-    font-size: 11px;
-    line-height: 1.5;
-  }
-
-  .worker-detail-row .detail-icon {
-    font-size: 10px;
-    flex-shrink: 0;
-  }
-
-  .worker-campsite {
-    color: var(--text-dim);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .worker-driver {
-    color: var(--accent-blue);
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .location-subheader {
-    padding: 8px 16px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text);
-    background: rgba(255,255,255,0.03);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    transition: background 0.15s;
-  }
-
-  .location-subheader:hover { background: rgba(255,255,255,0.05); }
-
-  .location-subheader .loc-toggle {
-    width: 16px;
-    height: 16px;
-    color: var(--text-dim);
-    transition: transform 0.25s ease;
-    flex-shrink: 0;
-  }
-
-  .location-group.loc-collapsed .loc-toggle {
-    transform: rotate(-90deg);
-  }
-
-  .location-group .loc-body {
-    display: grid;
-    grid-template-rows: 1fr;
-    transition: grid-template-rows 0.3s ease;
-    overflow: hidden;
-  }
-
-  .location-group.loc-collapsed .loc-body {
-    grid-template-rows: 0fr;
-  }
-
-  .location-group .loc-body-inner {
-    overflow: hidden;
-  }
-
-  .location-subheader .loc-badge {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-dim);
-    background: rgba(255,255,255,0.06);
-    padding: 2px 8px;
-    border-radius: 100px;
-    margin-left: auto;
-  }
-
-  .summary-bar {
-    padding: 12px 20px;
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    font-size: 13px;
-    color: var(--text-dim);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .summary-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .summary-item strong { color: var(--text); font-weight: 700; }
-
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-dim);
-  }
-
-  .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
-  .empty-state p { font-size: 15px; line-height: 1.6; }
-
-  .no-results {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--text-dim);
-  }
-
-  .loading {
-    text-align: center;
-    padding: 80px 20px;
-    color: var(--text-dim);
-  }
-
-  .loading-spinner {
-    width: 32px; height: 32px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent-blue);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 16px;
-  }
-
-  .status-msg {
-    font-size: 12px;
-    color: var(--text-dim);
-    text-align: center;
-    padding: 4px 20px 0;
-  }
-
-  @media (min-width: 640px) {
-    .content { padding: 16px 24px 100px; }
-    .header { padding: 20px 24px 14px; }
-    .date-tabs { padding: 14px 24px; }
-  }
-</style>
-</head>
-<body>
-
-<div class="header">
-  <div class="header-top">
-    <div class="logo">
-      <span class="logo-dot live" id="statusDot"></span>
-      Work Schedule
-    </div>
-    <button class="refresh-btn" id="refreshBtn" title="Refresh data">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-      Refresh
-    </button>
-  </div>
-  <div class="search-wrap">
-    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" class="search" id="searchInput" placeholder="Search by name or ID...">
-    <div class="search-hint" id="searchHint"></div>
-  </div>
-</div>
-
-<div class="filter-bar" id="managerFilter"></div>
-<div class="date-tabs" id="dateTabs"></div>
-<div class="summary-bar" id="summaryBar"></div>
-<div class="status-msg" id="statusMsg"></div>
-<div class="content" id="content">
-  <div class="loading">
-    <div class="loading-spinner"></div>
-    <p>Loading schedule...</p>
-  </div>
-</div>
-
-<script>
-// ============================================================
-//  CONFIGURATION — change these to match your Google Sheets
-// ============================================================
-
-// HOW TO GET YOUR CSV URL:
-// 1. Open your Google Sheet
-// 2. Go to File → Share → Publish to web
-// 3. Choose the sheet tab → CSV format → Publish
-// 4. Copy the URL and paste it below
-//
-// You can add multiple sheets (one per day or one big sheet with all days).
-// The app will merge and group everything automatically by date.
-
-// Your spreadsheet ID (from the URL: docs.google.com/spreadsheets/d/THIS_PART/edit)
-const SPREADSHEET_ID = '18sSjNLnWhSd0iGoaa3JZYYkRp9Xgc6342K60Gk2YX_k';
-
-// Sheet tabs to load — use gid numbers. gid=0 is the first tab.
-// To find a tab's gid, click the tab and look at the URL: #gid=XXXXX
-const SHEET_GIDS = [0];
-// Example for multiple tabs: const SHEET_GIDS = [0, 123456789, 987654321];
-
-// COLUMN MAPPING — these are ALL possible header names used across managers
-// The code will try each name until it finds a match
-const COL = {
-  date:      ['Date'],
-  gang:      ['Gang'],
-  location:  ['Farm location', 'Farm where you work', 'Location'],
-  startTime: ['Parking Time', 'Parking time', 'Start time'],
-  id:        ['ID'],
-  name:      ['Full Name'],
-  campsite:  ['Campsite'],
-  comment:   ['Comment'],
-};
-
-// MANAGER COLUMN RANGES
-// Each manager has their own block of columns in the spreadsheet.
-// Columns are letters: A=0, B=1, ... J=9, K=10, L=11, M=12, etc.
-// Use colToIndex() helper or just count from 0.
-function colToIndex(letter) {
-  letter = letter.toUpperCase();
-  let idx = 0;
-  for (let i = 0; i < letter.length; i++) {
-    idx = idx * 26 + (letter.charCodeAt(i) - 64);
-  }
-  return idx - 1; // 0-based
-}
-
-const MANAGER_RANGES = [
-  { manager: 'Charles', startCol: colToIndex('A'),  endCol: colToIndex('J') },
-  { manager: 'Milush',  startCol: colToIndex('M'),  endCol: colToIndex('V') },
-  { manager: 'Jim',     startCol: colToIndex('Y'),  endCol: colToIndex('AH') },
-  { manager: 'Gavin',   startCol: colToIndex('AK'), endCol: colToIndex('AT') },
-];
-
-// TEAM COLORS — cycles through these for different manager groups
-const TEAM_COLORS = ['#4e8fff','#34d399','#f59e0b','#f472b6','#a78bfa','#06b6d4','#ef4444','#84cc16'];
-
-// ============================================================
-//  FALLBACK DATA — used when no CSV URLs are configured
-//  (Delete this once you've added your Google Sheet URLs)
-// ============================================================
-const FALLBACK_CSV = `Index,Date,Manager,Gang,Farm location,Parking Time,ID,Full Name,Campsite,Comment
-1,06/03/2026,Charles,Anvar,Howfield East Side,7:00 parking,3022,Juratbek Salamaleikum,Nickle Farm,Driver A
-2,06/03/2026,Charles,Anvar,Howfield East Side,7:00 parking,3044,Sardorjon Khudoynazarov,Nickle Farm,Driver A
-3,06/03/2026,Charles,Anvar,Howfield East Side,7:00 parking,3061,Akbar Ortikov,Nickle Farm,Driver A
-4,06/03/2026,Charles,Anvar,Howfield East Side,7:00 parking,3047,Jasurbek Mirzoboev,Nickle Farm,Driver A
-5,06/03/2026,Charles,Anvar,Howfield East Side,7:00 parking,3068,Jahongir Sohibov,Nickle Farm,Driver A
-6,06/03/2026,Charles,Anvar,Howfield East Side,7:00 parking,3030,Sardor Abdurakhimov,Nickle Farm,Driver A
-7,06/03/2026,Charles,Anvar,Howfield West Side,7:00 parking,3059,Boburbek Ollaberganov,Nickle Farm,Driver A
-8,06/03/2026,Charles,Anvar,Howfield West Side,7:00 parking,3038,Sardor Baltaev,Nickle Farm,Driver A
-9,06/03/2026,Charles,Giorge,Howfield West Side,06:30 parking,3155,Javlonbek Babadjanov,Nickle Farm,Driver A
-10,06/03/2026,Charles,Giorge,Howfield West Side,06:30 parking,3040,Khursandbek Isakov,Nickle Farm,Driver A
-11,06/03/2026,Charles,Giorge,Howfield West Side,06:30 parking,3063,Rashid Ruziev,Nickle Farm,Driver A
-12,06/03/2026,Charles,Tom,Guilton,7:00 parking,3062,Otanazar Rajapov,Howfield,Driver B
-13,06/03/2026,Charles,Tom,Guilton,7:00 parking,3036,Urolboy Bakhrillaev,Howfield,Driver B
-14,06/03/2026,Charles,Tom,Guilton,7:00 parking,3070,Oybek Tairov,Howfield,Driver B
-15,06/03/2026,Charles,Tom,Guilton,7:00 parking,3161,Apsamat Akmatzhanov,Howfield,Driver B
-16,06/03/2026,Milush,Team 1,Howfield,7:00 parking,3022,Juratbek Salamaleikum,Nickle Farm,Driver A
-17,06/03/2026,Milush,Team 1,Howfield,7:00 parking,3044,Sardorjon Khudoynazarov,Nickle Farm,Driver A
-18,06/03/2026,Milush,Team 1,Guilton,7:00 parking,3062,Otanazar Rajapov,Howfield,Driver B
-19,06/03/2026,Jim,Team 1,Howfield,7:00 parking,3022,Juratbek Salamaleikum,Nickle Farm,Driver A
-20,06/03/2026,Jim,Team 2,Chesley,6:00 parking,3252,Allayarov Aziz,Howfield,Driver B
-21,06/03/2026,Gavin,Team 1,Howfield,7:00 parking,3022,Juratbek Salamaleikum,Nickle Farm,Driver A
-22,06/03/2026,Gavin,Team 2,Guilton,7:00 parking,3062,Otanazar Rajapov,Howfield,Driver B`;
-
-// ============================================================
-//  CSV PARSER
-// ============================================================
-function parseCSV(text) {
-  const lines = text.trim().replace(/\r/g, '').split('\n');
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim());
-  return lines.slice(1).map(line => {
-    const vals = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') { inQuotes = !inQuotes; }
-      else if (ch === ',' && !inQuotes) { vals.push(current.trim()); current = ''; }
-      else { current += ch; }
-    }
-    vals.push(current.trim());
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
-    return obj;
-  });
-}
-
-// ============================================================
-//  DATE HELPERS
-// ============================================================
-function parseDate(str) {
-  // Handles DD/MM/YYYY, YYYY-MM-DD, MM/DD/YYYY
-  let d;
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
-    const [dd, mm, yyyy] = str.split('/');
-    d = new Date(yyyy, mm - 1, dd);
-  } else if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-    const [yyyy, mm, dd] = str.split('-');
-    d = new Date(yyyy, mm - 1, dd);
-  } else {
-    d = new Date(str);
-  }
-  return isNaN(d) ? null : d;
-}
-
-function formatDateKey(d) {
-  return d.toISOString().slice(0, 10);
-}
-
-function formatDateLabel(d) {
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
-function formatDayName(d) {
-  return d.toLocaleDateString('en-GB', { weekday: 'short' });
-}
-
-// ============================================================
-//  DATA PROCESSING — groups flat CSV rows into structured days
-// ============================================================
-function processRows(rows) {
-  if (rows.length > 0) {
-    console.log('processRows keys:', Object.keys(rows[0]));
-    console.log('processRows first row:', rows[0]);
-  }
-
-  // Flexible column lookup — accepts a string or array of possible names
-  function getVal(row, colNames) {
-    const names = Array.isArray(colNames) ? colNames : [colNames];
-    for (const name of names) {
-      // Exact match
-      if (row[name] !== undefined && row[name] !== '') return row[name];
-    }
-    // Case-insensitive fallback
-    for (const name of names) {
-      const key = Object.keys(row).find(k => k.toLowerCase().trim() === name.toLowerCase().trim());
-      if (key && row[key] !== undefined && row[key] !== '') return row[key];
-    }
-    return '';
-  }
-
-  const dayMap = {};
-  let colorIdx = 0;
-  const managerColors = {};
-
-  rows.forEach(row => {
-    const dateStr = getVal(row, COL.date);
-    const d = parseDate(dateStr);
-    if (!d) return;
-    const key = formatDateKey(d);
-
-    if (!dayMap[key]) {
-      dayMap[key] = { date: key, dateObj: d, label: formatDateLabel(d), dayName: formatDayName(d), teamMap: {} };
-    }
-
-    const manager = row['Manager'] || getVal(row, 'Manager') || 'Unassigned';
-    const comment = getVal(row, COL.comment) || '';
-    const teamKey = manager;
-
-    if (!managerColors[teamKey]) {
-      managerColors[teamKey] = TEAM_COLORS[colorIdx % TEAM_COLORS.length];
-      colorIdx++;
-    }
-
-    // Parse start time — may include extra text like "7:00 parking"
-    const rawTime = getVal(row, COL.startTime) || '';
-    const timeParts = rawTime.match(/^(\d{1,2}:\d{2})/);
-    const time = timeParts ? timeParts[1] : rawTime;
-    const note = rawTime.replace(time, '').trim();
-    const location = getVal(row, COL.location) || '';
-
-    if (!dayMap[key].teamMap[teamKey]) {
-      dayMap[key].teamMap[teamKey] = {
-        manager,
-        gang: getVal(row, COL.gang) || '',
-        startTime: time,
-        note,
-        color: managerColors[teamKey],
-        workers: []
-      };
-    }
-
-    dayMap[key].teamMap[teamKey].workers.push({
-      id: getVal(row, COL.id) || '',
-      name: getVal(row, COL.name) || '',
-      campsite: getVal(row, COL.campsite) || '',
-      driver: comment,
-      location: location,
-      startTime: rawTime,
-      gang: getVal(row, COL.gang) || ''
-    });
-  });
-
-  // Convert to sorted array
-  return Object.values(dayMap)
-    .sort((a, b) => a.dateObj - b.dateObj)
-    .map(day => ({
-      date: day.date,
-      label: day.label,
-      dayName: day.dayName,
-      teams: Object.values(day.teamMap)
-    }));
-}
-
-// ============================================================
-//  DATA FETCHING (CORS-free via Google Visualization JSONP)
-// ============================================================
-
-function fetchSheet(gid) {
-  return new Promise((resolve, reject) => {
-    const callbackName = '_sheetCb_' + gid + '_' + Date.now();
-    const url = 'https://docs.google.com/spreadsheets/d/' +
-      SPREADSHEET_ID +
-      '/gviz/tq?tqx=responseHandler:' + callbackName +
-      '&gid=' + gid;
-
-    const timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error('Request timed out for gid=' + gid));
-    }, 15000);
-
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[callbackName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
-
-    window[callbackName] = function(response) {
-      cleanup();
-
-      if (!response || !response.table) {
-        reject(new Error('No data in response'));
-        return;
-      }
-
-      const allCols = response.table.cols;
-      const allDataRows = response.table.rows;
-      const allRows = [];
-
-      console.log('Total columns from sheet:', allCols.length);
-      console.log('Column labels:', allCols.map(c => c.label));
-
-      MANAGER_RANGES.forEach(range => {
-        // Extract headers for this manager's block
-        const blockCols = [];
-        for (let i = range.startCol; i <= range.endCol && i < allCols.length; i++) {
-          blockCols.push({ index: i, label: (allCols[i].label || '').trim() });
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro-Force Kent Farms</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        console.log(range.manager + ' columns (' + range.startCol + '-' + range.endCol + '):', blockCols.map(c => c.label));
+        :root {
+            --primary: #0f172a;
+            --secondary: #1e293b;
+            --accent: #0ea5e9;
+            --accent-dark: #0284c7;
+            --text-light: #f1f5f9;
+            --text-muted: #cbd5e1;
+            --success: #10b981;
+            --border: #334155;
+        }
 
-        // Process each data row for this manager's block
-        allDataRows.forEach(r => {
-          if (!r.c) return;
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0e4166;
+            color: var(--text-light);
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
 
-          const obj = { Manager: range.manager };
-          let hasData = false;
+        /* Wave Background */
+        .wave-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
 
-          blockCols.forEach(col => {
-            const cell = r.c[col.index];
-            if (!col.label) return;
-            if (!cell || cell.v == null) { obj[col.label] = ''; return; }
+        .wave-background svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            display: block;
+            background-color: #0e4166;
+            background-image: linear-gradient(to bottom, rgba(10, 49, 77, 0.86), #0e4166);
+        }
 
-            // Google Viz date handling
-            if (typeof cell.v === 'string' && cell.v.startsWith('Date(')) {
-              const m = cell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
-              if (m) {
-                const dd = String(m[3]).padStart(2, '0');
-                const mm = String(Number(m[2]) + 1).padStart(2, '0');
-                obj[col.label] = dd + '/' + mm + '/' + m[1];
-                hasData = true;
-                return;
-              }
+        /* Content wrapper */
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+            animation: pageReveal 1s ease-out;
+            padding-bottom: 110px;
+        }
+
+        @keyframes pageReveal {
+            from { opacity: 0; filter: blur(20px); }
+            to { opacity: 1; filter: blur(0); }
+        }
+
+        /* ============================================
+           FLOATING BOTTOM TAB BAR
+           ============================================ */
+        .bottom-tab-bar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: rgba(8, 15, 30, 0.82);
+            backdrop-filter: blur(28px) saturate(1.6);
+            -webkit-backdrop-filter: blur(28px) saturate(1.6);
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow:
+                0 8px 40px rgba(0, 0, 0, 0.45),
+                0 2px 12px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            animation: tabBarSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+        }
+
+        @keyframes tabBarSlideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Individual tab button */
+        .tab-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 20px;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.4px;
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            min-width: 64px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .tab-btn svg {
+            flex-shrink: 0;
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            width: 26px;
+            height: 26px;
+            filter: brightness(0.75) saturate(0.7);
+        }
+
+        .tab-btn-label {
+            transition: all 0.3s ease;
+            opacity: 0.7;
+            white-space: nowrap;
+        }
+
+        /* Hover state */
+        .tab-btn:hover {
+            color: var(--text-light);
+        }
+
+        .tab-btn:hover svg {
+            filter: brightness(1) saturate(1);
+            transform: translateY(-2px) scale(1.08);
+        }
+
+        .tab-btn:hover .tab-btn-label {
+            opacity: 1;
+        }
+
+        /* Active state */
+        .tab-btn.active {
+            color: #ffffff;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(16, 185, 129, 0.12) 100%);
+            box-shadow: 0 0 24px rgba(14, 165, 233, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .tab-btn.active svg {
+            filter: brightness(1.1) saturate(1.2) drop-shadow(0 0 6px rgba(14, 165, 233, 0.35));
+            transform: translateY(-1px) scale(1.05);
+        }
+
+        .tab-btn.active .tab-btn-label {
+            opacity: 1;
+            font-weight: 600;
+        }
+
+        /* Active indicator dot */
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px rgba(14, 165, 233, 0.6);
+            animation: dotPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes dotPulse {
+            0%, 100% { box-shadow: 0 0 6px rgba(14, 165, 233, 0.4); }
+            50% { box-shadow: 0 0 12px rgba(14, 165, 233, 0.8); }
+        }
+
+        /* Press feedback */
+        .tab-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* Top logo bar */
+        .top-logo-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 900;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .top-logo-bar > * {
+            pointer-events: auto;
+        }
+
+        .logo-icons-top {
+            display: flex;
+            gap: 0;
+            flex-shrink: 0;
+        }
+
+        .icon-box-top {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            animation: popIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
+        }
+
+        .icon-box-top:nth-child(1) { background: #7cb342; animation-delay: 0.3s; }
+        .icon-box-top:nth-child(2) { background: #e91e63; animation-delay: 0.5s; }
+        .icon-box-top:nth-child(3) { background: #00b0d7; animation-delay: 0.7s; }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0) rotate(-180deg); }
+            to { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+
+        .person-icon-top { position: relative; }
+
+        .head-top {
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            margin: 0 auto 1px;
+        }
+
+        .body-top {
+            width: 0;
+            height: 0;
+            border-left: 4.5px solid transparent;
+            border-right: 4.5px solid transparent;
+            border-top: 7px solid white;
+            margin: 0 auto;
+        }
+
+        .logo-text-top {
+            display: flex;
+            flex-direction: column;
+            line-height: 1;
+            animation: fadeInSlide 1s ease-out;
+        }
+
+        @keyframes fadeInSlide {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .logo-main-top {
+            font-size: 16px;
+            font-weight: 900;
+            color: var(--text-light);
+            letter-spacing: 1px;
+        }
+
+        .logo-sub-top {
+            font-size: 10px;
+            font-weight: 900;
+            color: #6b6b6b;
+            letter-spacing: 1px;
+            margin-top: 1px;
+        }
+
+        /* Page content sections */
+        .page {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .page.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h2 { font-size: 1.6rem; margin-bottom: 1rem; color: var(--text-light); }
+        .card p { font-size: 1.05rem; line-height: 1.8; color: var(--text-muted); }
+
+        .work-item {
+            background: rgba(255, 255, 255, 0.06);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent);
+        }
+
+        .work-item h3 { font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text-light); }
+        .work-item p { color: var(--text-muted); }
+
+        .faq-item {
+            background: rgba(255, 255, 255, 0.06);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .faq-item:hover { background: rgba(255, 255, 255, 0.12); }
+
+        .faq-question {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-light);
+        }
+
+        .faq-answer {
+            display: none;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-muted);
+        }
+
+        .faq-item.open .faq-answer { display: block; }
+        .faq-icon { transition: transform 0.3s ease; color: var(--text-muted); }
+        .faq-item.open .faq-icon { transform: rotate(180deg); }
+
+        .pages-content { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem;
+            cursor: pointer; font-weight: 600; transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(14, 165, 233, 0.3); }
+
+        /* Hero Section */
+        .hero {
+            padding: 6rem 2rem;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 18vh;
+            min-height: 100vh;
+        }
+
+        .hero-visual { animation: float 3s ease-in-out infinite, fadeInScale 1s ease-out 0.5s backwards; }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .hero-visual svg { width: 100%; height: auto; filter: drop-shadow(0 0 30px rgba(14, 165, 233, 0.3)); }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .fruits-showcase { display: flex; justify-content: center; align-items: center; padding: 0 2rem 0.5rem; margin-bottom: -1rem; }
+        .fruits-showcase .hero-visual { animation: float 3s ease-in-out infinite, fadeInScale 1s ease-out 0.5s backwards; }
+
+        .hero-content { text-align: center; max-width: 900px; }
+
+        .hero-title {
+            font-size: 3.5rem; font-weight: 800; line-height: 1.3; margin-bottom: 0;
+            min-height: 5em; display: flex; align-items: center; justify-content: center;
+        }
+
+        .hero-text {
+            display: inline-block; color: white;
+            text-shadow: 0 0 20px rgba(14, 165, 233, 0.4), 0 0 60px rgba(16, 185, 129, 0.15);
+        }
+
+        @keyframes outDissolve {
+            0% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+            100% { opacity: 0; transform: scale(1.06) translateY(-15px); filter: blur(14px); }
+        }
+
+        @keyframes inDissolve {
+            0% { opacity: 0; transform: scale(0.96) translateY(15px); filter: blur(14px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+        }
+
+        .hero-lines { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 0.3rem; }
+        .hero-line { height: 3px; border-radius: 2px; width: 0; }
+
+        .hero-line-blue {
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            animation: heroLineExpand 1.2s ease-out 0.5s forwards, glowPulseBlue 2.5s ease-in-out 1.7s infinite;
+        }
+
+        .hero-line-green {
+            background: linear-gradient(90deg, transparent, var(--success), transparent);
+            animation: heroLineExpandShort 1.2s ease-out 0.8s forwards, glowPulseGreen 2.5s ease-in-out 2s infinite;
+        }
+
+        @keyframes heroLineExpand { to { width: 320px; } }
+        @keyframes heroLineExpandShort { to { width: 200px; } }
+
+        @keyframes glowPulseBlue {
+            0%, 100% { opacity: 0.6; box-shadow: 0 0 8px rgba(14, 165, 233, 0.3); }
+            50% { opacity: 1; box-shadow: 0 0 16px rgba(14, 165, 233, 0.6); }
+        }
+
+        @keyframes glowPulseGreen {
+            0%, 100% { opacity: 0.6; box-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+            50% { opacity: 1; box-shadow: 0 0 16px rgba(16, 185, 129, 0.6); }
+        }
+
+        /* Worklist Squares */
+        .fruit-squares { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 700px; margin: 0 auto; }
+
+        .fruit-square {
+            padding: 2.5rem 2rem; border-radius: 20px; text-align: center; cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex; flex-direction: column; align-items: center; gap: 1rem;
+        }
+
+        .fruit-square h2 { font-size: 1.5rem; font-weight: 700; color: white; }
+        .fruit-square p { font-size: 0.9rem; color: rgba(255, 255, 255, 0.8); }
+
+        .fruit-square-green {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.25) 0%, rgba(22, 163, 74, 0.15) 100%);
+            border: 2px solid rgba(34, 197, 94, 0.4); box-shadow: 0 8px 32px rgba(34, 197, 94, 0.1);
+        }
+
+        .fruit-square-green:hover {
+            transform: translateY(-6px) scale(1.02); border-color: rgba(34, 197, 94, 0.7);
+            box-shadow: 0 16px 48px rgba(34, 197, 94, 0.25), 0 0 30px rgba(34, 197, 94, 0.15);
+        }
+
+        .fruit-square-red {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(220, 38, 38, 0.15) 100%);
+            border: 2px solid rgba(239, 68, 68, 0.4); box-shadow: 0 8px 32px rgba(239, 68, 68, 0.1);
+        }
+
+        .fruit-square-red:hover {
+            transform: translateY(-6px) scale(1.02); border-color: rgba(239, 68, 68, 0.7);
+            box-shadow: 0 16px 48px rgba(239, 68, 68, 0.25), 0 0 30px rgba(239, 68, 68, 0.15);
+        }
+
+        .schedule-view { animation: fadeIn 0.5s ease; }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-muted); padding: 0.6rem 1.2rem; border-radius: 10px;
+            cursor: pointer; font-size: 0.9rem; transition: all 0.3s ease; margin-bottom: 1.5rem;
+        }
+
+        .back-btn:hover { background: rgba(255, 255, 255, 0.15); color: white; }
+
+        .schedule-header { padding: 1.5rem 2rem; border-radius: 16px; margin-bottom: 1.5rem; }
+        .schedule-header h2 { font-size: 1.4rem; color: white; margin-bottom: 0.3rem; }
+        .schedule-date { font-size: 0.95rem; color: rgba(255, 255, 255, 0.7); }
+
+        .schedule-header-green {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(22, 163, 74, 0.15) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .schedule-header-red {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.15) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .schedule-grid { display: flex; flex-direction: column; gap: 0.6rem; }
+
+        .schedule-slot {
+            display: flex; gap: 1.5rem; align-items: center;
+            background: rgba(255, 255, 255, 0.06); padding: 1rem 1.5rem; border-radius: 12px;
+            border-left: 3px solid var(--accent); transition: background 0.3s ease;
+        }
+
+        .schedule-slot:hover { background: rgba(255, 255, 255, 0.1); }
+        .slot-time { font-size: 0.9rem; font-weight: 600; color: var(--accent); min-width: 120px; white-space: nowrap; }
+        .slot-task { font-size: 1rem; color: var(--text-light); }
+
+        .worker-search {
+            background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px; padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+        }
+
+        .worker-search label { display: block; font-size: 1.05rem; color: var(--text-light); margin-bottom: 0.8rem; font-weight: 600; }
+        .search-input-row { display: flex; gap: 0.8rem; align-items: center; }
+
+        .worker-input {
+            flex: 1; max-width: 300px; padding: 0.7rem 1rem; border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.08);
+            color: white; font-size: 1rem; outline: none; transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .worker-input::placeholder { color: rgba(255, 255, 255, 0.35); }
+        .worker-input:focus { border-color: var(--accent); box-shadow: 0 0 16px rgba(14, 165, 233, 0.2); }
+
+        .search-btn {
+            padding: 0.7rem 1.5rem; border-radius: 10px; border: none;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+        }
+
+        .search-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3); }
+
+        .search-result { margin-top: 0.8rem; font-size: 0.95rem; min-height: 1.4em; }
+        .search-result.found { color: var(--success); }
+        .search-result.not-found { color: #f87171; }
+
+        .iframe-container {
+            background: rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;
+        }
+
+        .iframe-container iframe { width: 100%; min-height: 346px; border: none; border-radius: 8px; }
+        .iframe-hint { text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 0.8rem; opacity: 0.7; }
+
+        /* ============================================
+           FOOTER DRAWER
+           ============================================ */
+        .footer-drawer-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 1100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+
+        .footer-drawer-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .footer-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1200;
+            background: rgba(10, 18, 36, 0.96);
+            backdrop-filter: blur(32px) saturate(1.5);
+            -webkit-backdrop-filter: blur(32px) saturate(1.5);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px 24px 0 0;
+            padding: 0 2rem 2rem;
+            transform: translateY(100%);
+            transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .footer-drawer.open {
+            transform: translateY(0);
+        }
+
+        .footer-drawer-handle {
+            display: flex;
+            justify-content: center;
+            padding: 12px 0 8px;
+            cursor: pointer;
+            position: sticky;
+            top: 0;
+            background: rgba(10, 18, 36, 0.96);
+            z-index: 1;
+        }
+
+        .footer-drawer-handle span {
+            width: 36px;
+            height: 4px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            transition: background 0.3s ease;
+        }
+
+        .footer-drawer-handle:hover span {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .footer-drawer-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer-section h4 {
+            color: var(--text-light);
+            margin-bottom: 0.6rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        .footer-section ul { list-style: none; }
+
+        .footer-section a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.3s, transform 0.2s;
+            display: block;
+            margin-bottom: 0.35rem;
+            font-size: 0.88rem;
+            padding: 2px 0;
+        }
+
+        .footer-section a:hover {
+            color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .footer-copyright {
+            text-align: center;
+            padding-top: 1.2rem;
+            margin-top: 1.2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            opacity: 0.6;
+        }
+
+        /* Info trigger button — positioned to the left of the tab bar */
+        .footer-trigger {
+            position: fixed;
+            bottom: 28px;
+            right: 24px;
+            z-index: 1050;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(8, 15, 30, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            animation: tabBarSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+        }
+
+        .footer-trigger:hover {
+            color: var(--text-light);
+            border-color: rgba(14, 165, 233, 0.3);
+            box-shadow: 0 4px 20px rgba(14, 165, 233, 0.15);
+            transform: scale(1.08);
+        }
+
+        .footer-trigger:active {
+            transform: scale(0.94);
+        }
+
+        .footer-trigger.active {
+            color: var(--accent);
+            border-color: rgba(14, 165, 233, 0.4);
+            background: rgba(14, 165, 233, 0.12);
+        }
+
+        .footer-trigger svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.35s ease;
+        }
+
+        .footer-trigger.active svg {
+            transform: rotate(180deg);
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .bottom-tab-bar {
+                bottom: 0;
+                left: 0;
+                right: 0;
+                transform: none;
+                border-radius: 20px 20px 0 0;
+                padding: 6px 8px;
+                padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+                gap: 2px;
+                justify-content: space-around;
+                animation: tabBarSlideUpMobile 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
             }
 
-            obj[col.label] = String(cell.v);
-            if (String(cell.v).trim()) hasData = true;
-          });
+            @keyframes tabBarSlideUpMobile {
+                from { opacity: 0; transform: translateY(100%); }
+                to { opacity: 1; transform: translateY(0); }
+            }
 
-          // Only add row if it has actual data (skip empty rows)
-          if (hasData) allRows.push(obj);
-        });
-      });
+            .tab-btn { padding: 8px 6px; min-width: 52px; font-size: 0.65rem; gap: 3px; border-radius: 14px; }
+            .tab-btn svg { width: 22px; height: 22px; }
+            .top-logo-bar { padding: 10px 16px; }
+            .hero { padding: 3rem 1rem; padding-top: 12vh; }
+            .hero-title { font-size: 2.2rem; min-height: 4em; }
+            .fruit-squares { grid-template-columns: 1fr; }
+            .schedule-slot { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+            .content-wrapper { padding-bottom: 90px; }
 
-      console.log('Loaded gid=' + gid + ':', allRows.length, 'total rows across all managers');
-      if (allRows.length > 0) console.log('First row:', allRows[0]);
-      resolve(allRows);
-    };
+            .footer-trigger {
+                bottom: auto;
+                top: 12px;
+                right: 16px;
+                width: 36px;
+                height: 36px;
+                animation: none;
+                opacity: 1;
+            }
 
-    const script = document.createElement('script');
-    script.src = url;
-    script.onerror = () => {
-      cleanup();
-      reject(new Error('Failed to load sheet gid=' + gid));
-    };
-    document.head.appendChild(script);
-  });
-}
+            .footer-drawer-grid {
+                grid-template-columns: 1fr;
+                gap: 1.2rem;
+            }
 
-async function fetchAllData() {
-  let allRows = [];
+            .footer-drawer {
+                padding: 0 1.5rem 1.5rem;
+                max-height: 80vh;
+            }
+        }
 
-  if (!SPREADSHEET_ID) {
-    allRows = parseCSV(FALLBACK_CSV);
-    setStatus('demo');
-  } else {
-    try {
-      const results = await Promise.all(
-        SHEET_GIDS.map(gid => fetchSheet(gid))
-      );
-      results.forEach(rows => allRows.push(...rows));
-      if (allRows.length > 0) {
-        setStatus('live');
-      } else {
-        console.warn('Sheets returned 0 rows, using fallback');
-        allRows = parseCSV(FALLBACK_CSV);
-        setStatus('error');
-      }
-    } catch (err) {
-      console.error('Fetch error:', err);
-      setStatus('error');
-      allRows = parseCSV(FALLBACK_CSV);
-    }
-  }
+        @media (max-width: 380px) {
+            .tab-btn { padding: 6px 4px; min-width: 46px; }
+            .tab-btn svg { width: 20px; height: 20px; }
+            .tab-btn-label { font-size: 0.6rem; }
+        }
+    </style>
+</head>
 
-  return processRows(allRows);
-}
+<body>
+    <!-- Animated Wave Background -->
+    <div class="wave-background">
+        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+            width="100%" height="100%" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
+            <defs>
+                <linearGradient id="bg">
+                    <stop offset="0%" style="stop-color:rgba(130, 158, 249, 0.06)"></stop>
+                    <stop offset="50%" style="stop-color:rgba(76, 190, 255, 0.6)"></stop>
+                    <stop offset="100%" style="stop-color:rgba(115, 209, 72, 0.2)"></stop>
+                </linearGradient>
+                <path id="wave" fill="url(#bg)"
+                    d="M-363.852,502.589c0,0,236.988-41.997,505.475,0
+        s371.981,38.998,575.971,0s293.985-39.278,505.474,5.859s493.475,48.368,716.963-4.995v560.106H-363.852V502.589z" />
+            </defs>
+            <g>
+                <use xlink:href='#wave' opacity=".3">
+                    <animateTransform attributeName="transform" attributeType="XML" type="translate" dur="10s"
+                        calcMode="spline" values="270 230; -334 180; 270 230" keyTimes="0; .5; 1"
+                        keySplines="0.42, 0, 0.58, 1.0;0.42, 0, 0.58, 1.0" repeatCount="indefinite" />
+                </use>
+                <use xlink:href='#wave' opacity=".6">
+                    <animateTransform attributeName="transform" attributeType="XML" type="translate" dur="8s"
+                        calcMode="spline" values="-270 230;243 220;-270 230" keyTimes="0; .6; 1"
+                        keySplines="0.42, 0, 0.58, 1.0;0.42, 0, 0.58, 1.0" repeatCount="indefinite" />
+                </use>
+                <use xlink:href='#wave' opacity=".9">
+                    <animateTransform attributeName="transform" attributeType="XML" type="translate" dur="6s"
+                        calcMode="spline" values="0 230;-140 200;0 230" keyTimes="0; .4; 1"
+                        keySplines="0.42, 0, 0.58, 1.0;0.42, 0, 0.58, 1.0" repeatCount="indefinite" />
+                </use>
+            </g>
+        </svg>
+    </div>
 
-// ============================================================
-//  UI
-// ============================================================
-const AVATAR_COLORS = ['#4e8fff','#34d399','#f59e0b','#f472b6','#a78bfa','#06b6d4','#ef4444','#84cc16'];
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
 
-function getAvatarColor(name) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
-
-function getInitials(name) {
-  const p = name.trim().split(/\s+/);
-  return p.length === 1 ? p[0][0].toUpperCase() : (p[0][0] + p[p.length-1][0]).toUpperCase();
-}
-
-function highlightText(text, q) {
-  if (!q) return text;
-  const idx = text.toLowerCase().indexOf(q);
-  if (idx === -1) return text;
-  return text.slice(0, idx) +
-    '<mark style="background:rgba(78,143,255,0.25);color:inherit;border-radius:2px;padding:0 1px">' +
-    text.slice(idx, idx + q.length) + '</mark>' + text.slice(idx + q.length);
-}
-
-let SCHEDULE_DATA = [];
-let currentDate = null;
-let searchQuery = '';
-let selectedManager = null; // null = show all
-
-function setStatus(mode) {
-  const dot = document.getElementById('statusDot');
-  const msg = document.getElementById('statusMsg');
-  dot.className = 'logo-dot ' + (mode === 'live' ? 'live' : mode === 'error' ? 'error' : 'offline');
-  if (mode === 'demo') msg.textContent = 'Showing demo data — add your Google Sheet URLs to go live';
-  else if (mode === 'error') msg.textContent = 'Could not fetch sheet — showing cached data';
-  else if (mode === 'live') msg.textContent = '';
-}
-
-function renderManagerFilter() {
-  const container = document.getElementById('managerFilter');
-  const day = SCHEDULE_DATA.find(d => d.date === currentDate);
-  if (!day) { container.innerHTML = ''; return; }
-
-  // Collect unique managers with their colors and worker counts
-  const managers = [];
-  const seen = new Set();
-  day.teams.forEach(team => {
-    if (!seen.has(team.manager)) {
-      seen.add(team.manager);
-      const count = day.teams
-        .filter(t => t.manager === team.manager)
-        .reduce((s, t) => s + t.workers.length, 0);
-      managers.push({ name: team.manager, color: team.color, count });
-    }
-  });
-
-  if (managers.length <= 1) { container.innerHTML = ''; return; }
-
-  container.innerHTML =
-    `<span class="filter-label">Manager</span>` +
-    `<button class="filter-chip ${selectedManager === null ? 'active' : ''}" data-manager="">All</button>` +
-    managers.map(m =>
-      `<button class="filter-chip ${selectedManager === m.name ? 'active' : ''}" data-manager="${m.name}">
-        <span class="chip-dot" style="background:${m.color}"></span>
-        ${m.name}
-        <span class="chip-count">${m.count}</span>
-      </button>`
-    ).join('');
-
-  container.querySelectorAll('.filter-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const val = btn.dataset.manager;
-      selectedManager = val === '' ? null : val;
-      renderManagerFilter();
-      renderContent();
-    });
-  });
-}
-
-function renderTabs() {
-  const tabs = document.getElementById('dateTabs');
-  tabs.innerHTML = SCHEDULE_DATA.map(d =>
-    `<button class="date-tab ${d.date === currentDate ? 'active' : ''}" data-date="${d.date}">
-      <span class="tab-day">${d.dayName}</span>${d.label}
-    </button>`
-  ).join('');
-  tabs.querySelectorAll('.date-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentDate = btn.dataset.date;
-      selectedManager = null; // reset filter on date change
-      renderTabs();
-      renderManagerFilter();
-      renderContent();
-    });
-  });
-}
-
-function renderContent() {
-  const content = document.getElementById('content');
-  const summary = document.getElementById('summaryBar');
-  const hint = document.getElementById('searchHint');
-  const day = SCHEDULE_DATA.find(d => d.date === currentDate);
-
-  if (!day) {
-    content.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>No schedule data yet</p></div>';
-    summary.innerHTML = '';
-    return;
-  }
-
-  const q = searchQuery.toLowerCase().trim();
-  let totalWorkers = 0, matchedWorkers = 0;
-  let html = '';
-
-  // Filter teams by selected manager
-  const visibleTeams = selectedManager
-    ? day.teams.filter(t => t.manager === selectedManager)
-    : day.teams;
-
-  visibleTeams.forEach((team, ti) => {
-    const filtered = team.workers.filter(w => {
-      const match = !q || w.name.toLowerCase().includes(q) || w.id.includes(q);
-      totalWorkers++;
-      if (match) matchedWorkers++;
-      return match;
-    });
-    if (filtered.length === 0) return;
-
-    // Group filtered workers by location
-    const locationGroups = {};
-    filtered.forEach(w => {
-      const loc = w.location || 'Unspecified';
-      if (!locationGroups[loc]) locationGroups[loc] = [];
-      locationGroups[loc].push(w);
-    });
-    const locations = Object.keys(locationGroups);
-
-    // Get unique locations for the header
-    const allLocations = [...new Set(team.workers.map(w => w.location))].filter(Boolean);
-
-    html += `<div class="team-card collapsed" style="animation-delay:${ti * 0.06}s" id="team-${ti}">
-      <div class="team-header" onclick="document.getElementById('team-${ti}').classList.toggle('collapsed')">
-        <div class="team-label">
-          <div class="team-color" style="background:${team.color}"></div>
-          <div>
-            <div class="team-name">${team.manager}</div>
-            <div class="team-meta">${filtered.length} worker${filtered.length !== 1 ? 's' : ''}${allLocations.length > 1 ? ' · ' + allLocations.length + ' locations' : ''}</div>
-          </div>
-        </div>
-        <div class="team-header-right">
-          <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-      </div>
-      <div class="team-body"><div class="team-body-inner">`;
-
-    let li = 0;
-    locations.forEach(loc => {
-      const workers = locationGroups[loc];
-
-      // Show location subheader (always show if multiple locations, or as single bar)
-      const locId = 'loc-' + ti + '-' + li;
-      li++;
-      html += `<div class="location-group" id="${locId}">
-      <div class="location-subheader" onclick="document.getElementById('${locId}').classList.toggle('loc-collapsed')">
-        <span>📍 Farm location: ${loc}</span>
-        <span class="loc-badge">${workers.length} worker${workers.length !== 1 ? 's' : ''}</span>
-        <svg class="loc-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="loc-body"><div class="loc-body-inner">
-      <div class="worker-list">
-        ${workers.map((w, i) => {
-          const hl = q && (w.name.toLowerCase().includes(q) || w.id.includes(q));
-          return `<div class="worker-row ${hl ? 'highlighted' : ''}">
-            <span class="worker-num">${i+1}</span>
-            <div class="worker-avatar" style="background:${getAvatarColor(w.name)}">${getInitials(w.name)}</div>
-            <div class="worker-info">
-              <div class="worker-name-row">
-                <div class="worker-name">${highlightText(w.name, q)}</div>
-                <div class="worker-id">#${highlightText(w.id, q)}</div>
-              </div>
-              <div class="worker-meta">
-                ${w.gang ? '<span class="worker-meta-item"><span class="meta-icon">👥</span><span class="worker-gang">' + w.gang + '</span></span>' : ''}
-                ${w.startTime ? '<span class="worker-meta-item"><span class="meta-icon">⏰</span><span class="worker-time">' + w.startTime + '</span></span>' : ''}
-                ${w.campsite ? '<span class="worker-meta-item"><span class="meta-icon">🏕</span><span class="worker-campsite">' + w.campsite + '</span></span>' : ''}
-              </div>
+        <!-- Top Logo -->
+        <div class="top-logo-bar">
+            <div class="logo-icons-top">
+                <div class="icon-box-top">
+                    <div class="person-icon-top"><div class="head-top"></div><div class="body-top"></div></div>
+                </div>
+                <div class="icon-box-top">
+                    <div class="person-icon-top"><div class="head-top"></div><div class="body-top"></div></div>
+                </div>
+                <div class="icon-box-top">
+                    <div class="person-icon-top"><div class="head-top"></div><div class="body-top"></div></div>
+                </div>
             </div>
-            <div class="worker-details">
-              ${w.location ? '<div class="worker-detail-row"><span class="detail-icon">🌾</span><span class="worker-farm">' + w.location + '</span></div>' : ''}
-              ${w.driver ? '<div class="worker-detail-row"><span class="detail-icon">🚐</span><span class="worker-driver">' + w.driver + '</span></div>' : ''}
+            <div class="logo-text-top">
+                <div class="logo-main-top">Pro-Force</div>
+                <div class="logo-sub-top">KENT FARMS</div>
             </div>
-          </div>`;
-        }).join('')}
-      </div>
-      </div></div>
-      </div>`;
-    });
+        </div>
 
-    html += `</div></div>
-    </div>`;
-  });
+        <!-- Hero Section (Home Page) -->
+        <div id="home" class="page active">
+            <section class="hero">
+                <div class="hero-content">
+                    <h1 class="hero-title" id="heroTitle">
+                        <span class="hero-text">Welcome to Pro-Force Kent Farms</span>
+                    </h1>
+                    <div class="hero-lines">
+                        <div class="hero-line hero-line-blue"></div>
+                        <div class="hero-line hero-line-green"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
 
-  content.innerHTML = html || `<div class="no-results"><p>No workers found matching "${searchQuery}"</p></div>`;
+        <!-- Worklist Page -->
+        <div id="worklist" class="page">
+            <div class="pages-content">
+                <h1 class="page-title">Worklist</h1>
 
-  const allW = visibleTeams.reduce((s, t) => s + t.workers.length, 0);
-  const locs = [...new Set(visibleTeams.flatMap(t => t.workers.map(w => w.location)).filter(Boolean))];
-  summary.innerHTML = `
-    <div class="summary-item">👥 <strong>${allW}</strong> workers</div>
-    <div class="summary-item">🚐 <strong>${day.teams.length}</strong> groups</div>
-  `;
+                <!-- Category selection view -->
+                <div id="worklist-categories">
+                    <div class="fruit-squares">
+                        <div class="fruit-square fruit-square-green" onclick="showSchedule('top-fruits')">
+                            <svg width="160" height="60" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Apple -->
+                                <circle cx="50" cy="55" r="22" fill="#4ade80" />
+                                <circle cx="50" cy="48" r="20" fill="#4ade80" />
+                                <rect x="48" y="22" width="4" height="10" rx="2" fill="#6b4423" />
+                                <ellipse cx="58" cy="27" rx="10" ry="5" fill="#22c55e" transform="rotate(30 58 27)" />
+                                <ellipse cx="42" cy="46" rx="6" ry="9" fill="white" opacity="0.3" />
+                                <!-- Plum -->
+                                <ellipse cx="150" cy="52" rx="20" ry="24" fill="#9b59b6" stroke="#6c3483"
+                                    stroke-width="1.5" />
+                                <ellipse cx="143" cy="43" rx="6" ry="10" fill="white" opacity="0.25" />
+                                <rect x="148" y="22" width="3" height="10" rx="1.5" fill="#6b4423" />
+                                <ellipse cx="157" cy="27" rx="8" ry="4" fill="#22c55e" transform="rotate(25 157 27)" />
+                                <!-- Cherry pair -->
+                                <path d="M 250,22 Q 242,35 235,48" stroke="#6b4423" stroke-width="2.5" fill="none" />
+                                <path d="M 250,22 Q 258,35 265,48" stroke="#6b4423" stroke-width="2.5" fill="none" />
+                                <circle cx="235" cy="58" r="16" fill="#ef4444" />
+                                <ellipse cx="231" cy="53" rx="5" ry="7" fill="white" opacity="0.3" />
+                                <circle cx="265" cy="58" r="16" fill="#ef4444" />
+                                <ellipse cx="261" cy="53" rx="5" ry="7" fill="white" opacity="0.3" />
+                                <ellipse cx="256" cy="22" rx="10" ry="5" fill="#22c55e" transform="rotate(20 256 22)" />
+                            </svg>
+                            <h2>Top Fruits</h2>
+                            <p>Apples, Pears, Plums & more</p>
+                        </div>
+                        <div class="fruit-square fruit-square-red" onclick="showSchedule('soft-fruits')">
+                            <svg width="130" height="60" viewBox="0 0 240 100" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Strawberry -->
+                                <ellipse cx="65" cy="55" rx="20" ry="26" fill="#f87171" stroke="#ef4444"
+                                    stroke-width="1" />
+                                <circle cx="59" cy="47" r="1.5" fill="#ffd93d" opacity="0.9" />
+                                <circle cx="65" cy="45" r="1.5" fill="#ffd93d" opacity="0.9" />
+                                <circle cx="71" cy="47" r="1.5" fill="#ffd93d" opacity="0.9" />
+                                <circle cx="57" cy="55" r="1.5" fill="#ffd93d" opacity="0.9" />
+                                <circle cx="65" cy="57" r="1.5" fill="#ffd93d" opacity="0.9" />
+                                <circle cx="73" cy="55" r="1.5" fill="#ffd93d" opacity="0.9" />
+                                <circle cx="59" cy="65" r="1.5" fill="#ffd93d" opacity="0.9" />
+                                <circle cx="65" cy="67" r="1.5" fill="#ffd93d" opacity="0.9" />
+                                <circle cx="71" cy="65" r="1.5" fill="#ffd93d" opacity="0.9" />
+                                <ellipse cx="59" cy="33" rx="7" ry="4" fill="#22c55e" transform="rotate(-20 59 33)" />
+                                <ellipse cx="65" cy="31" rx="7" ry="4" fill="#16a34a" />
+                                <ellipse cx="71" cy="33" rx="7" ry="4" fill="#22c55e" transform="rotate(20 71 33)" />
+                                <!-- Raspberry -->
+                                <g transform="translate(175, 52)">
+                                    <!-- Berry drupelets -->
+                                    <circle cx="0" cy="-12" r="6" fill="#e11d48" />
+                                    <circle cx="-10" cy="-6" r="6" fill="#be123c" />
+                                    <circle cx="10" cy="-6" r="6" fill="#be123c" />
+                                    <circle cx="-6" cy="4" r="6" fill="#e11d48" />
+                                    <circle cx="6" cy="4" r="6" fill="#e11d48" />
+                                    <circle cx="0" cy="12" r="6" fill="#be123c" />
+                                    <circle cx="-10" cy="10" r="5.5" fill="#e11d48" />
+                                    <circle cx="10" cy="10" r="5.5" fill="#e11d48" />
+                                    <circle cx="0" cy="0" r="5" fill="#f43f5e" />
+                                    <!-- Highlights -->
+                                    <circle cx="-2" cy="-13" r="2" fill="white" opacity="0.3" />
+                                    <circle cx="-12" cy="-7" r="2" fill="white" opacity="0.25" />
+                                    <circle cx="8" cy="3" r="2" fill="white" opacity="0.25" />
+                                    <circle cx="-2" cy="11" r="2" fill="white" opacity="0.2" />
+                                    <!-- Leaves -->
+                                    <ellipse cx="-8" cy="-22" rx="8" ry="4" fill="#22c55e"
+                                        transform="rotate(-20 -8 -22)" />
+                                    <ellipse cx="0" cy="-24" rx="8" ry="4" fill="#16a34a" />
+                                    <ellipse cx="8" cy="-22" rx="8" ry="4" fill="#22c55e"
+                                        transform="rotate(20 8 -22)" />
+                                    <rect x="-1.5" y="-30" width="3" height="8" rx="1.5" fill="#6b4423" />
+                                </g>
+                            </svg>
+                            <h2>Soft Fruits</h2>
+                            <p>Strawberries, Cherries, Raspberries & more</p>
+                        </div>
+                    </div>
+                </div>
 
-  if (q && matchedWorkers < totalWorkers) {
-    hint.textContent = `Showing ${matchedWorkers} of ${totalWorkers} workers`;
-    hint.classList.add('visible');
-  } else {
-    hint.classList.remove('visible');
-  }
-}
+                <!-- Top Fruits Schedule -->
+                <div id="schedule-top-fruits" class="schedule-view" style="display:none;">
+                    <button class="back-btn" onclick="backToCategories()">← Back to Worklist</button>
+                    <div class="schedule-header schedule-header-green">
+                        <h2>Top Fruits — Tomorrow's Schedule</h2>
+                        <p class="schedule-date" id="top-fruits-date"></p>
+                    </div>
+                    <div class="schedule-grid">
+                        <div class="schedule-slot">
+                            <div class="slot-time">06:00 – 08:00</div>
+                            <div class="slot-task">Apple picking — Orchard rows 1–6</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">08:00 – 08:30</div>
+                            <div class="slot-task">Break</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">08:30 – 10:30</div>
+                            <div class="slot-task">Pear harvest — Orchard rows 7–12</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">10:30 – 12:30</div>
+                            <div class="slot-task">Plum picking — South orchard</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">12:30 – 13:00</div>
+                            <div class="slot-task">Lunch break</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">13:00 – 15:00</div>
+                            <div class="slot-task">Sorting, grading & crate packing</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">15:00 – 16:00</div>
+                            <div class="slot-task">Cold storage loading & dispatch prep</div>
+                        </div>
+                    </div>
+                </div>
 
-// ============================================================
-//  INIT
-// ============================================================
-async function loadData() {
-  const btn = document.getElementById('refreshBtn');
-  btn.classList.add('spinning');
-  SCHEDULE_DATA = await fetchAllData();
-  if (SCHEDULE_DATA.length > 0 && !SCHEDULE_DATA.find(d => d.date === currentDate)) {
-    currentDate = SCHEDULE_DATA[0].date;
-  }
-  renderTabs();
-  renderManagerFilter();
-  renderContent();
-  btn.classList.remove('spinning');
-}
+                <!-- Soft Fruits Schedule -->
+                <div id="schedule-soft-fruits" class="schedule-view" style="display:none;">
+                    <button class="back-btn" onclick="backToCategories()">← Back to Worklist</button>
+                    <div class="schedule-header schedule-header-red">
+                        <h2>Soft Fruits — Tomorrow's Schedule</h2>
+                        <p class="schedule-date" id="soft-fruits-date"></p>
+                    </div>
+                    <div class="schedule-grid">
+                        <div class="schedule-slot">
+                            <div class="slot-time">06:00 – 08:00</div>
+                            <div class="slot-task">Strawberry picking — Polytunnel 1–4</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">08:00 – 08:30</div>
+                            <div class="slot-task">Break</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">08:30 – 10:30</div>
+                            <div class="slot-task">Raspberry harvest — Polytunnel 5–8</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">10:30 – 12:30</div>
+                            <div class="slot-task">Cherry picking — Open field rows</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">12:30 – 13:00</div>
+                            <div class="slot-task">Lunch break</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">13:00 – 15:00</div>
+                            <div class="slot-task">Punnet packing & weight check</div>
+                        </div>
+                        <div class="schedule-slot">
+                            <div class="slot-time">15:00 – 16:00</div>
+                            <div class="slot-task">Cold storage loading & dispatch prep</div>
+                        </div>
+                    </div>
+                </div>
 
-document.getElementById('refreshBtn').addEventListener('click', loadData);
+            </div>
 
-let debounce;
-document.getElementById('searchInput').addEventListener('input', e => {
-  clearTimeout(debounce);
-  debounce = setTimeout(() => { searchQuery = e.target.value; renderContent(); }, 200);
-});
+            <!-- Floating Fruits Section -->
+            <div class="fruits-showcase">
+                <div class="hero-visual">
+                    <svg width="500" height="400" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="appleGrad_p0" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c92a2a;stop-opacity:1" />
+                            </radialGradient>
+                            <radialGradient id="strawberryGrad_p0" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c23616;stop-opacity:1" />
+                            </radialGradient>
+                            <radialGradient id="cherryGrad_p0" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#eb2f06;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c44569;stop-opacity:1" />
+                            </radialGradient>
+                            <linearGradient id="stemGrad_p0" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#6ab04c;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#4a7c59;stop-opacity:1" />
+                            </linearGradient>
+                            <radialGradient id="plumGrad_p0" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#9b59b6;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#6c3483;stop-opacity:1" />
+                            </radialGradient>
+                            <filter id="fruitShadow_p0">
+                                <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                                <feOffset dx="2" dy="3" result="offsetblur" />
+                                <feComponentTransfer>
+                                    <feFuncA type="linear" slope="0.3" />
+                                </feComponentTransfer>
+                                <feMerge>
+                                    <feMergeNode />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
 
-loadData();
-</script>
+                        <!-- Strawberry (Left) -->
+                        <g class="strawberry" transform="translate(80, 200)" filter="url(#fruitShadow_p0)">
+                            <animateTransform attributeName="transform" type="translate" values="80,200; 80,190; 80,200"
+                                dur="3s" repeatCount="indefinite" />
+
+                            <!-- Strawberry Body - rounder shape -->
+                            <ellipse cx="0" cy="5" rx="24" ry="32" fill="url(#strawberryGrad_p0)" stroke="#c23616"
+                                stroke-width="1.5" />
+
+                            <!-- More seeds in a realistic pattern -->
+                            <!-- Top row -->
+                            <circle cx="-12" cy="-18" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="-20" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="12" cy="-18" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Second row -->
+                            <circle cx="-16" cy="-6" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-6" cy="-8" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="6" cy="-8" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="16" cy="-6" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Third row -->
+                            <circle cx="-20" cy="6" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-10" cy="4" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="5" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="10" cy="4" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="20" cy="6" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Fourth row -->
+                            <circle cx="-16" cy="18" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-7" cy="17" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="7" cy="17" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="16" cy="18" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Fifth row -->
+                            <circle cx="-11" cy="28" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="29" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="11" cy="28" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Bottom row -->
+                            <circle cx="-5" cy="35" r="1.5" fill="#ffd93d" opacity="0.8" />
+                            <circle cx="5" cy="35" r="1.5" fill="#ffd93d" opacity="0.8" />
+
+                            <!-- Leaves - more realistic cluster -->
+                            <g transform="translate(0, -27)">
+                                <!-- Left leaves -->
+                                <ellipse cx="-18" cy="-3" rx="10" ry="7" fill="#6ab04c" transform="rotate(-25 -18 -3)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="-25 -18 -3; -30 -18 -3; -25 -18 -3" dur="2s" repeatCount="indefinite" />
+                                </ellipse>
+                                <ellipse cx="-10" cy="-8" rx="11" ry="7" fill="#4a9038" transform="rotate(-10 -10 -8)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="-10 -10 -8; -15 -10 -8; -10 -10 -8" dur="2s" begin="0.3s"
+                                        repeatCount="indefinite" />
+                                </ellipse>
+
+                                <!-- Center leaves -->
+                                <ellipse cx="-3" cy="-10" rx="11" ry="7" fill="#6ab04c" transform="rotate(-5 -3 -10)" />
+                                <ellipse cx="3" cy="-10" rx="11" ry="7" fill="#4a9038" transform="rotate(5 3 -10)" />
+
+                                <!-- Right leaves -->
+                                <ellipse cx="10" cy="-8" rx="11" ry="7" fill="#6ab04c" transform="rotate(10 10 -8)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="10 10 -8; 15 10 -8; 10 10 -8" dur="2s" begin="0.3s"
+                                        repeatCount="indefinite" />
+                                </ellipse>
+                                <ellipse cx="18" cy="-3" rx="10" ry="7" fill="#4a9038" transform="rotate(25 18 -3)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="25 18 -3; 30 18 -3; 25 18 -3" dur="2s" repeatCount="indefinite" />
+                                </ellipse>
+
+                                <!-- Leaf veins for detail -->
+                                <line x1="-18" y1="-3" x2="-13" y2="-3" stroke="#4a9038" stroke-width="0.5"
+                                    opacity="0.6" />
+                                <line x1="18" y1="-3" x2="13" y2="-3" stroke="#4a9038" stroke-width="0.5"
+                                    opacity="0.6" />
+                            </g>
+
+                            <!-- Subtle highlight on the strawberry -->
+                            <ellipse cx="-9" cy="-5" rx="9" ry="14" fill="white" opacity="0.15" />
+                        </g>
+
+                        <!-- Apple (Center) -->
+                        <g class="apple" transform="translate(200, 200)" filter="url(#fruitShadow_p0)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="200,200; 200,185; 200,200" dur="3.5s" repeatCount="indefinite" />
+
+                            <!-- Apple Body -->
+                            <circle cx="0" cy="0" r="45" fill="url(#appleGrad_p0)" />
+                            <circle cx="0" cy="-10" r="42" fill="url(#appleGrad_p0)" />
+
+                            <!-- Indent at top -->
+                            <ellipse cx="0" cy="-42" rx="10" ry="5" fill="#2d6a4f" opacity="0.5" />
+
+                            <!-- Stem -->
+                            <rect x="-3" y="-60" width="6" height="20" rx="3" fill="url(#stemGrad_p0)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="0 0 -50; 5 0 -50; 0 0 -50" dur="2.5s" repeatCount="indefinite" />
+                            </rect>
+
+                            <!-- Leaf -->
+                            <ellipse cx="15" cy="-50" rx="20" ry="10" fill="#6ab04c" transform="rotate(30 15 -50)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="30 15 -50; 35 15 -50; 30 15 -50" dur="2.5s" repeatCount="indefinite" />
+                            </ellipse>
+
+                            <!-- Highlight -->
+                            <ellipse cx="-15" cy="-15" rx="12" ry="18" fill="white" opacity="0.3" />
+                        </g>
+
+                        <!-- Plum (Between Apple and Cherry) -->
+                        <g class="plum" transform="translate(320, 180)" filter="url(#fruitShadow_p0)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="320,180; 320,170; 320,180" dur="3.2s" repeatCount="indefinite" />
+
+                            <!-- Plum Body - oval shape -->
+                            <ellipse cx="0" cy="0" rx="32" ry="38" fill="url(#plumGrad_p0)" stroke="#6c3483"
+                                stroke-width="1.5" />
+
+                            <!-- Highlight on plum -->
+                            <ellipse cx="-10" cy="-12" rx="10" ry="15" fill="white" opacity="0.25" />
+
+                            <!-- Subtle texture lines -->
+                            <path d="M 0,-35 Q 0,-15 0,0" stroke="#8e44ad" stroke-width="0.5" opacity="0.3"
+                                fill="none" />
+
+                            <!-- Small indent at top -->
+                            <ellipse cx="0" cy="-38" rx="6" ry="3" fill="#5b2c6f" opacity="0.6" />
+
+                            <!-- Stem -->
+                            <rect x="-2" y="-48" width="4" height="12" rx="2" fill="#6b4423">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="0 0 -42; 3 0 -42; 0 0 -42" dur="2.3s" repeatCount="indefinite" />
+                            </rect>
+
+                            <!-- Small leaf -->
+                            <ellipse cx="8" cy="-42" rx="12" ry="6" fill="#6ab04c" transform="rotate(25 8 -42)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="25 8 -42; 30 8 -42; 25 8 -42" dur="2.3s" repeatCount="indefinite" />
+                            </ellipse>
+                        </g>
+
+                        <!-- Cherry (Right) - Two cherries connected -->
+                        <g class="cherry" transform="translate(440, 200)" filter="url(#fruitShadow_p0)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="440,200; 440,193; 440,200" dur="2.8s" repeatCount="indefinite" />
+
+                            <!-- Stems -->
+                            <path d="M 0,-60 Q -10,-40 -20,-10" stroke="url(#stemGrad_p0)" stroke-width="4" fill="none"
+                                stroke-linecap="round">
+                                <animate attributeName="d"
+                                    values="M 0,-60 Q -10,-40 -20,-10; M 0,-60 Q -12,-40 -20,-10; M 0,-60 Q -10,-40 -20,-10"
+                                    dur="2s" repeatCount="indefinite" />
+                            </path>
+                            <path d="M 0,-60 Q 10,-40 20,-10" stroke="url(#stemGrad_p0)" stroke-width="4" fill="none"
+                                stroke-linecap="round">
+                                <animate attributeName="d"
+                                    values="M 0,-60 Q 10,-40 20,-10; M 0,-60 Q 12,-40 20,-10; M 0,-60 Q 10,-40 20,-10"
+                                    dur="2s" repeatCount="indefinite" />
+                            </path>
+
+                            <!-- Left Cherry -->
+                            <circle cx="-20" cy="0" r="28" fill="url(#cherryGrad_p0)" />
+                            <ellipse cx="-25" cy="-8" rx="8" ry="12" fill="white" opacity="0.3" />
+
+                            <!-- Right Cherry -->
+                            <circle cx="20" cy="0" r="28" fill="url(#cherryGrad_p0)" />
+                            <ellipse cx="15" cy="-8" rx="8" ry="12" fill="white" opacity="0.3" />
+
+                            <!-- Leaf at stem junction -->
+                            <ellipse cx="5" cy="-55" rx="15" ry="8" fill="#6ab04c" transform="rotate(20 5 -55)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="20 5 -55; 25 5 -55; 20 5 -55" dur="2.2s" repeatCount="indefinite" />
+                            </ellipse>
+                        </g>
+
+                        <!-- Sparkles -->
+                        <g class="sparkles">
+                            <circle cx="50" cy="150" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="450" cy="160" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="2.5s" begin="0.5s"
+                                    repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="2.5s" begin="0.5s"
+                                    repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="250" cy="100" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="3s" begin="1s"
+                                    repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="3s" begin="1s"
+                                    repeatCount="indefinite" />
+                            </circle>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Result Page -->
+        <div id="result" class="page">
+            <div class="pages-content">
+                <h1 class="page-title">Result</h1>
+                <div class="card">
+                    <h2>Staff results</h2>
+                    <p>In progress</p>
+                </div>
+                <div class="card">
+                    <h2>Top Performers</h2>
+                    <p>In progress</p>
+                </div>
+            </div>
+
+            <!-- Floating Fruits Section -->
+            <div class="fruits-showcase">
+                <div class="hero-visual">
+                    <svg width="500" height="400" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="appleGrad_p1" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c92a2a;stop-opacity:1" />
+                            </radialGradient>
+                            <radialGradient id="strawberryGrad_p1" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c23616;stop-opacity:1" />
+                            </radialGradient>
+                            <radialGradient id="cherryGrad_p1" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#eb2f06;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c44569;stop-opacity:1" />
+                            </radialGradient>
+                            <linearGradient id="stemGrad_p1" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#6ab04c;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#4a7c59;stop-opacity:1" />
+                            </linearGradient>
+                            <radialGradient id="plumGrad_p1" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#9b59b6;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#6c3483;stop-opacity:1" />
+                            </radialGradient>
+                            <filter id="fruitShadow_p1">
+                                <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                                <feOffset dx="2" dy="3" result="offsetblur" />
+                                <feComponentTransfer>
+                                    <feFuncA type="linear" slope="0.3" />
+                                </feComponentTransfer>
+                                <feMerge>
+                                    <feMergeNode />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Strawberry (Left) -->
+                        <g class="strawberry" transform="translate(80, 200)" filter="url(#fruitShadow_p1)">
+                            <animateTransform attributeName="transform" type="translate" values="80,200; 80,190; 80,200"
+                                dur="3s" repeatCount="indefinite" />
+
+                            <!-- Strawberry Body - rounder shape -->
+                            <ellipse cx="0" cy="5" rx="24" ry="32" fill="url(#strawberryGrad_p1)" stroke="#c23616"
+                                stroke-width="1.5" />
+
+                            <!-- More seeds in a realistic pattern -->
+                            <!-- Top row -->
+                            <circle cx="-12" cy="-18" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="-20" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="12" cy="-18" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Second row -->
+                            <circle cx="-16" cy="-6" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-6" cy="-8" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="6" cy="-8" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="16" cy="-6" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Third row -->
+                            <circle cx="-20" cy="6" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-10" cy="4" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="5" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="10" cy="4" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="20" cy="6" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Fourth row -->
+                            <circle cx="-16" cy="18" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-7" cy="17" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="7" cy="17" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="16" cy="18" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Fifth row -->
+                            <circle cx="-11" cy="28" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="29" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="11" cy="28" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Bottom row -->
+                            <circle cx="-5" cy="35" r="1.5" fill="#ffd93d" opacity="0.8" />
+                            <circle cx="5" cy="35" r="1.5" fill="#ffd93d" opacity="0.8" />
+
+                            <!-- Leaves - more realistic cluster -->
+                            <g transform="translate(0, -27)">
+                                <!-- Left leaves -->
+                                <ellipse cx="-18" cy="-3" rx="10" ry="7" fill="#6ab04c" transform="rotate(-25 -18 -3)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="-25 -18 -3; -30 -18 -3; -25 -18 -3" dur="2s" repeatCount="indefinite" />
+                                </ellipse>
+                                <ellipse cx="-10" cy="-8" rx="11" ry="7" fill="#4a9038" transform="rotate(-10 -10 -8)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="-10 -10 -8; -15 -10 -8; -10 -10 -8" dur="2s" begin="0.3s"
+                                        repeatCount="indefinite" />
+                                </ellipse>
+
+                                <!-- Center leaves -->
+                                <ellipse cx="-3" cy="-10" rx="11" ry="7" fill="#6ab04c" transform="rotate(-5 -3 -10)" />
+                                <ellipse cx="3" cy="-10" rx="11" ry="7" fill="#4a9038" transform="rotate(5 3 -10)" />
+
+                                <!-- Right leaves -->
+                                <ellipse cx="10" cy="-8" rx="11" ry="7" fill="#6ab04c" transform="rotate(10 10 -8)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="10 10 -8; 15 10 -8; 10 10 -8" dur="2s" begin="0.3s"
+                                        repeatCount="indefinite" />
+                                </ellipse>
+                                <ellipse cx="18" cy="-3" rx="10" ry="7" fill="#4a9038" transform="rotate(25 18 -3)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="25 18 -3; 30 18 -3; 25 18 -3" dur="2s" repeatCount="indefinite" />
+                                </ellipse>
+
+                                <!-- Leaf veins for detail -->
+                                <line x1="-18" y1="-3" x2="-13" y2="-3" stroke="#4a9038" stroke-width="0.5"
+                                    opacity="0.6" />
+                                <line x1="18" y1="-3" x2="13" y2="-3" stroke="#4a9038" stroke-width="0.5"
+                                    opacity="0.6" />
+                            </g>
+
+                            <!-- Subtle highlight on the strawberry -->
+                            <ellipse cx="-9" cy="-5" rx="9" ry="14" fill="white" opacity="0.15" />
+                        </g>
+
+                        <!-- Apple (Center) -->
+                        <g class="apple" transform="translate(200, 200)" filter="url(#fruitShadow_p1)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="200,200; 200,185; 200,200" dur="3.5s" repeatCount="indefinite" />
+
+                            <!-- Apple Body -->
+                            <circle cx="0" cy="0" r="45" fill="url(#appleGrad_p1)" />
+                            <circle cx="0" cy="-10" r="42" fill="url(#appleGrad_p1)" />
+
+                            <!-- Indent at top -->
+                            <ellipse cx="0" cy="-42" rx="10" ry="5" fill="#2d6a4f" opacity="0.5" />
+
+                            <!-- Stem -->
+                            <rect x="-3" y="-60" width="6" height="20" rx="3" fill="url(#stemGrad_p1)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="0 0 -50; 5 0 -50; 0 0 -50" dur="2.5s" repeatCount="indefinite" />
+                            </rect>
+
+                            <!-- Leaf -->
+                            <ellipse cx="15" cy="-50" rx="20" ry="10" fill="#6ab04c" transform="rotate(30 15 -50)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="30 15 -50; 35 15 -50; 30 15 -50" dur="2.5s" repeatCount="indefinite" />
+                            </ellipse>
+
+                            <!-- Highlight -->
+                            <ellipse cx="-15" cy="-15" rx="12" ry="18" fill="white" opacity="0.3" />
+                        </g>
+
+                        <!-- Plum (Between Apple and Cherry) -->
+                        <g class="plum" transform="translate(320, 180)" filter="url(#fruitShadow_p1)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="320,180; 320,170; 320,180" dur="3.2s" repeatCount="indefinite" />
+
+                            <!-- Plum Body - oval shape -->
+                            <ellipse cx="0" cy="0" rx="32" ry="38" fill="url(#plumGrad_p1)" stroke="#6c3483"
+                                stroke-width="1.5" />
+
+                            <!-- Highlight on plum -->
+                            <ellipse cx="-10" cy="-12" rx="10" ry="15" fill="white" opacity="0.25" />
+
+                            <!-- Subtle texture lines -->
+                            <path d="M 0,-35 Q 0,-15 0,0" stroke="#8e44ad" stroke-width="0.5" opacity="0.3"
+                                fill="none" />
+
+                            <!-- Small indent at top -->
+                            <ellipse cx="0" cy="-38" rx="6" ry="3" fill="#5b2c6f" opacity="0.6" />
+
+                            <!-- Stem -->
+                            <rect x="-2" y="-48" width="4" height="12" rx="2" fill="#6b4423">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="0 0 -42; 3 0 -42; 0 0 -42" dur="2.3s" repeatCount="indefinite" />
+                            </rect>
+
+                            <!-- Small leaf -->
+                            <ellipse cx="8" cy="-42" rx="12" ry="6" fill="#6ab04c" transform="rotate(25 8 -42)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="25 8 -42; 30 8 -42; 25 8 -42" dur="2.3s" repeatCount="indefinite" />
+                            </ellipse>
+                        </g>
+
+                        <!-- Cherry (Right) - Two cherries connected -->
+                        <g class="cherry" transform="translate(440, 200)" filter="url(#fruitShadow_p1)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="440,200; 440,193; 440,200" dur="2.8s" repeatCount="indefinite" />
+
+                            <!-- Stems -->
+                            <path d="M 0,-60 Q -10,-40 -20,-10" stroke="url(#stemGrad_p1)" stroke-width="4" fill="none"
+                                stroke-linecap="round">
+                                <animate attributeName="d"
+                                    values="M 0,-60 Q -10,-40 -20,-10; M 0,-60 Q -12,-40 -20,-10; M 0,-60 Q -10,-40 -20,-10"
+                                    dur="2s" repeatCount="indefinite" />
+                            </path>
+                            <path d="M 0,-60 Q 10,-40 20,-10" stroke="url(#stemGrad_p1)" stroke-width="4" fill="none"
+                                stroke-linecap="round">
+                                <animate attributeName="d"
+                                    values="M 0,-60 Q 10,-40 20,-10; M 0,-60 Q 12,-40 20,-10; M 0,-60 Q 10,-40 20,-10"
+                                    dur="2s" repeatCount="indefinite" />
+                            </path>
+
+                            <!-- Left Cherry -->
+                            <circle cx="-20" cy="0" r="28" fill="url(#cherryGrad_p1)" />
+                            <ellipse cx="-25" cy="-8" rx="8" ry="12" fill="white" opacity="0.3" />
+
+                            <!-- Right Cherry -->
+                            <circle cx="20" cy="0" r="28" fill="url(#cherryGrad_p1)" />
+                            <ellipse cx="15" cy="-8" rx="8" ry="12" fill="white" opacity="0.3" />
+
+                            <!-- Leaf at stem junction -->
+                            <ellipse cx="5" cy="-55" rx="15" ry="8" fill="#6ab04c" transform="rotate(20 5 -55)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="20 5 -55; 25 5 -55; 20 5 -55" dur="2.2s" repeatCount="indefinite" />
+                            </ellipse>
+                        </g>
+
+                        <!-- Sparkles -->
+                        <g class="sparkles">
+                            <circle cx="50" cy="150" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="450" cy="160" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="2.5s" begin="0.5s"
+                                    repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="2.5s" begin="0.5s"
+                                    repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="250" cy="100" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="3s" begin="1s"
+                                    repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="3s" begin="1s"
+                                    repeatCount="indefinite" />
+                            </circle>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Informations Page -->
+        <div id="informations" class="page">
+            <div class="pages-content">
+                <h1 class="page-title">Important Informations</h1>
+                <div class="card">
+                    <h2>About Us</h2>
+                    <p>We are dedicated to help you surive another season.</p>
+                </div>
+                <div class="card">
+                    <h2>Contact Information</h2>
+                    <p><strong>Email:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__"
+                            data-cfemail="741d1a121b34110c15190418115a171b19">[email&#160;protected]</a></p>
+                    <p><strong>Phone:</strong> 000-111-222-333-444</p>
+                    <p><strong>Address:</strong> Howfield Farm, Howfield Lane, Canterbury, CT4 7HQ</p>
+                </div>
+                <div class="card">
+                    <h2>Working Hours</h2>
+                    <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
+                    <p>Saturday: 10:00 AM - 4:00 PM</p>
+                    <p>Sunday: Closed</p>
+                </div>
+            </div>
+
+            <!-- Floating Fruits Section -->
+            <div class="fruits-showcase">
+                <div class="hero-visual">
+                    <svg width="500" height="400" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="appleGrad_p2" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c92a2a;stop-opacity:1" />
+                            </radialGradient>
+                            <radialGradient id="strawberryGrad_p2" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c23616;stop-opacity:1" />
+                            </radialGradient>
+                            <radialGradient id="cherryGrad_p2" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#eb2f06;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c44569;stop-opacity:1" />
+                            </radialGradient>
+                            <linearGradient id="stemGrad_p2" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#6ab04c;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#4a7c59;stop-opacity:1" />
+                            </linearGradient>
+                            <radialGradient id="plumGrad_p2" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#9b59b6;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#6c3483;stop-opacity:1" />
+                            </radialGradient>
+                            <filter id="fruitShadow_p2">
+                                <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                                <feOffset dx="2" dy="3" result="offsetblur" />
+                                <feComponentTransfer>
+                                    <feFuncA type="linear" slope="0.3" />
+                                </feComponentTransfer>
+                                <feMerge>
+                                    <feMergeNode />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Strawberry (Left) -->
+                        <g class="strawberry" transform="translate(80, 200)" filter="url(#fruitShadow_p2)">
+                            <animateTransform attributeName="transform" type="translate" values="80,200; 80,190; 80,200"
+                                dur="3s" repeatCount="indefinite" />
+
+                            <!-- Strawberry Body - rounder shape -->
+                            <ellipse cx="0" cy="5" rx="24" ry="32" fill="url(#strawberryGrad_p2)" stroke="#c23616"
+                                stroke-width="1.5" />
+
+                            <!-- More seeds in a realistic pattern -->
+                            <!-- Top row -->
+                            <circle cx="-12" cy="-18" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="-20" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="12" cy="-18" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Second row -->
+                            <circle cx="-16" cy="-6" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-6" cy="-8" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="6" cy="-8" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="16" cy="-6" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Third row -->
+                            <circle cx="-20" cy="6" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-10" cy="4" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="5" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="10" cy="4" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="20" cy="6" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Fourth row -->
+                            <circle cx="-16" cy="18" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-7" cy="17" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="7" cy="17" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="16" cy="18" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Fifth row -->
+                            <circle cx="-11" cy="28" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="29" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="11" cy="28" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Bottom row -->
+                            <circle cx="-5" cy="35" r="1.5" fill="#ffd93d" opacity="0.8" />
+                            <circle cx="5" cy="35" r="1.5" fill="#ffd93d" opacity="0.8" />
+
+                            <!-- Leaves - more realistic cluster -->
+                            <g transform="translate(0, -27)">
+                                <!-- Left leaves -->
+                                <ellipse cx="-18" cy="-3" rx="10" ry="7" fill="#6ab04c" transform="rotate(-25 -18 -3)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="-25 -18 -3; -30 -18 -3; -25 -18 -3" dur="2s" repeatCount="indefinite" />
+                                </ellipse>
+                                <ellipse cx="-10" cy="-8" rx="11" ry="7" fill="#4a9038" transform="rotate(-10 -10 -8)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="-10 -10 -8; -15 -10 -8; -10 -10 -8" dur="2s" begin="0.3s"
+                                        repeatCount="indefinite" />
+                                </ellipse>
+
+                                <!-- Center leaves -->
+                                <ellipse cx="-3" cy="-10" rx="11" ry="7" fill="#6ab04c" transform="rotate(-5 -3 -10)" />
+                                <ellipse cx="3" cy="-10" rx="11" ry="7" fill="#4a9038" transform="rotate(5 3 -10)" />
+
+                                <!-- Right leaves -->
+                                <ellipse cx="10" cy="-8" rx="11" ry="7" fill="#6ab04c" transform="rotate(10 10 -8)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="10 10 -8; 15 10 -8; 10 10 -8" dur="2s" begin="0.3s"
+                                        repeatCount="indefinite" />
+                                </ellipse>
+                                <ellipse cx="18" cy="-3" rx="10" ry="7" fill="#4a9038" transform="rotate(25 18 -3)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="25 18 -3; 30 18 -3; 25 18 -3" dur="2s" repeatCount="indefinite" />
+                                </ellipse>
+
+                                <!-- Leaf veins for detail -->
+                                <line x1="-18" y1="-3" x2="-13" y2="-3" stroke="#4a9038" stroke-width="0.5"
+                                    opacity="0.6" />
+                                <line x1="18" y1="-3" x2="13" y2="-3" stroke="#4a9038" stroke-width="0.5"
+                                    opacity="0.6" />
+                            </g>
+
+                            <!-- Subtle highlight on the strawberry -->
+                            <ellipse cx="-9" cy="-5" rx="9" ry="14" fill="white" opacity="0.15" />
+                        </g>
+
+                        <!-- Apple (Center) -->
+                        <g class="apple" transform="translate(200, 200)" filter="url(#fruitShadow_p2)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="200,200; 200,185; 200,200" dur="3.5s" repeatCount="indefinite" />
+
+                            <!-- Apple Body -->
+                            <circle cx="0" cy="0" r="45" fill="url(#appleGrad_p2)" />
+                            <circle cx="0" cy="-10" r="42" fill="url(#appleGrad_p2)" />
+
+                            <!-- Indent at top -->
+                            <ellipse cx="0" cy="-42" rx="10" ry="5" fill="#2d6a4f" opacity="0.5" />
+
+                            <!-- Stem -->
+                            <rect x="-3" y="-60" width="6" height="20" rx="3" fill="url(#stemGrad_p2)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="0 0 -50; 5 0 -50; 0 0 -50" dur="2.5s" repeatCount="indefinite" />
+                            </rect>
+
+                            <!-- Leaf -->
+                            <ellipse cx="15" cy="-50" rx="20" ry="10" fill="#6ab04c" transform="rotate(30 15 -50)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="30 15 -50; 35 15 -50; 30 15 -50" dur="2.5s" repeatCount="indefinite" />
+                            </ellipse>
+
+                            <!-- Highlight -->
+                            <ellipse cx="-15" cy="-15" rx="12" ry="18" fill="white" opacity="0.3" />
+                        </g>
+
+                        <!-- Plum (Between Apple and Cherry) -->
+                        <g class="plum" transform="translate(320, 180)" filter="url(#fruitShadow_p2)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="320,180; 320,170; 320,180" dur="3.2s" repeatCount="indefinite" />
+
+                            <!-- Plum Body - oval shape -->
+                            <ellipse cx="0" cy="0" rx="32" ry="38" fill="url(#plumGrad_p2)" stroke="#6c3483"
+                                stroke-width="1.5" />
+
+                            <!-- Highlight on plum -->
+                            <ellipse cx="-10" cy="-12" rx="10" ry="15" fill="white" opacity="0.25" />
+
+                            <!-- Subtle texture lines -->
+                            <path d="M 0,-35 Q 0,-15 0,0" stroke="#8e44ad" stroke-width="0.5" opacity="0.3"
+                                fill="none" />
+
+                            <!-- Small indent at top -->
+                            <ellipse cx="0" cy="-38" rx="6" ry="3" fill="#5b2c6f" opacity="0.6" />
+
+                            <!-- Stem -->
+                            <rect x="-2" y="-48" width="4" height="12" rx="2" fill="#6b4423">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="0 0 -42; 3 0 -42; 0 0 -42" dur="2.3s" repeatCount="indefinite" />
+                            </rect>
+
+                            <!-- Small leaf -->
+                            <ellipse cx="8" cy="-42" rx="12" ry="6" fill="#6ab04c" transform="rotate(25 8 -42)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="25 8 -42; 30 8 -42; 25 8 -42" dur="2.3s" repeatCount="indefinite" />
+                            </ellipse>
+                        </g>
+
+                        <!-- Cherry (Right) - Two cherries connected -->
+                        <g class="cherry" transform="translate(440, 200)" filter="url(#fruitShadow_p2)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="440,200; 440,193; 440,200" dur="2.8s" repeatCount="indefinite" />
+
+                            <!-- Stems -->
+                            <path d="M 0,-60 Q -10,-40 -20,-10" stroke="url(#stemGrad_p2)" stroke-width="4" fill="none"
+                                stroke-linecap="round">
+                                <animate attributeName="d"
+                                    values="M 0,-60 Q -10,-40 -20,-10; M 0,-60 Q -12,-40 -20,-10; M 0,-60 Q -10,-40 -20,-10"
+                                    dur="2s" repeatCount="indefinite" />
+                            </path>
+                            <path d="M 0,-60 Q 10,-40 20,-10" stroke="url(#stemGrad_p2)" stroke-width="4" fill="none"
+                                stroke-linecap="round">
+                                <animate attributeName="d"
+                                    values="M 0,-60 Q 10,-40 20,-10; M 0,-60 Q 12,-40 20,-10; M 0,-60 Q 10,-40 20,-10"
+                                    dur="2s" repeatCount="indefinite" />
+                            </path>
+
+                            <!-- Left Cherry -->
+                            <circle cx="-20" cy="0" r="28" fill="url(#cherryGrad_p2)" />
+                            <ellipse cx="-25" cy="-8" rx="8" ry="12" fill="white" opacity="0.3" />
+
+                            <!-- Right Cherry -->
+                            <circle cx="20" cy="0" r="28" fill="url(#cherryGrad_p2)" />
+                            <ellipse cx="15" cy="-8" rx="8" ry="12" fill="white" opacity="0.3" />
+
+                            <!-- Leaf at stem junction -->
+                            <ellipse cx="5" cy="-55" rx="15" ry="8" fill="#6ab04c" transform="rotate(20 5 -55)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="20 5 -55; 25 5 -55; 20 5 -55" dur="2.2s" repeatCount="indefinite" />
+                            </ellipse>
+                        </g>
+
+                        <!-- Sparkles -->
+                        <g class="sparkles">
+                            <circle cx="50" cy="150" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="450" cy="160" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="2.5s" begin="0.5s"
+                                    repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="2.5s" begin="0.5s"
+                                    repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="250" cy="100" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="3s" begin="1s"
+                                    repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="3s" begin="1s"
+                                    repeatCount="indefinite" />
+                            </circle>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FAQ Page -->
+        <div id="faq" class="page">
+            <div class="pages-content">
+                <h1 class="page-title">Frequently Asked Questions</h1>
+                <div class="card">
+                    <div class="faq-item" onclick="toggleFAQ(this)">
+                        <div class="faq-question">
+                            Most common question 1?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Whatever answer it is.
+                        </div>
+                    </div>
+
+                    <div class="faq-item" onclick="toggleFAQ(this)">
+                        <div class="faq-question">
+                            Most common question 2?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Whatever answer it is.
+                        </div>
+                    </div>
+
+                    <div class="faq-item" onclick="toggleFAQ(this)">
+                        <div class="faq-question">
+                            Most common question 3?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Whatever answer it is.
+                        </div>
+                    </div>
+
+                    <div class="faq-item" onclick="toggleFAQ(this)">
+                        <div class="faq-question">
+                            Most common question 4?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Whatever answer it is.
+                        </div>
+                    </div>
+
+                    <div class="faq-item" onclick="toggleFAQ(this)">
+                        <div class="faq-question">
+                            Most common question 5?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Whatever answer it is.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Fruits Section -->
+            <div class="fruits-showcase">
+                <div class="hero-visual">
+                    <svg width="500" height="400" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="appleGrad_p3" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c92a2a;stop-opacity:1" />
+                            </radialGradient>
+                            <radialGradient id="strawberryGrad_p3" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c23616;stop-opacity:1" />
+                            </radialGradient>
+                            <radialGradient id="cherryGrad_p3" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#eb2f06;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c44569;stop-opacity:1" />
+                            </radialGradient>
+                            <linearGradient id="stemGrad_p3" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#6ab04c;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#4a7c59;stop-opacity:1" />
+                            </linearGradient>
+                            <radialGradient id="plumGrad_p3" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#9b59b6;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#6c3483;stop-opacity:1" />
+                            </radialGradient>
+                            <filter id="fruitShadow_p3">
+                                <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                                <feOffset dx="2" dy="3" result="offsetblur" />
+                                <feComponentTransfer>
+                                    <feFuncA type="linear" slope="0.3" />
+                                </feComponentTransfer>
+                                <feMerge>
+                                    <feMergeNode />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Strawberry (Left) -->
+                        <g class="strawberry" transform="translate(80, 200)" filter="url(#fruitShadow_p3)">
+                            <animateTransform attributeName="transform" type="translate" values="80,200; 80,190; 80,200"
+                                dur="3s" repeatCount="indefinite" />
+
+                            <!-- Strawberry Body - rounder shape -->
+                            <ellipse cx="0" cy="5" rx="24" ry="32" fill="url(#strawberryGrad_p3)" stroke="#c23616"
+                                stroke-width="1.5" />
+
+                            <!-- More seeds in a realistic pattern -->
+                            <!-- Top row -->
+                            <circle cx="-12" cy="-18" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="-20" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="12" cy="-18" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Second row -->
+                            <circle cx="-16" cy="-6" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-6" cy="-8" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="6" cy="-8" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="16" cy="-6" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Third row -->
+                            <circle cx="-20" cy="6" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-10" cy="4" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="5" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="10" cy="4" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="20" cy="6" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Fourth row -->
+                            <circle cx="-16" cy="18" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="-7" cy="17" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="7" cy="17" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="16" cy="18" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Fifth row -->
+                            <circle cx="-11" cy="28" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="0" cy="29" r="1.8" fill="#ffd93d" opacity="0.9" />
+                            <circle cx="11" cy="28" r="1.8" fill="#ffd93d" opacity="0.9" />
+
+                            <!-- Bottom row -->
+                            <circle cx="-5" cy="35" r="1.5" fill="#ffd93d" opacity="0.8" />
+                            <circle cx="5" cy="35" r="1.5" fill="#ffd93d" opacity="0.8" />
+
+                            <!-- Leaves - more realistic cluster -->
+                            <g transform="translate(0, -27)">
+                                <!-- Left leaves -->
+                                <ellipse cx="-18" cy="-3" rx="10" ry="7" fill="#6ab04c" transform="rotate(-25 -18 -3)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="-25 -18 -3; -30 -18 -3; -25 -18 -3" dur="2s" repeatCount="indefinite" />
+                                </ellipse>
+                                <ellipse cx="-10" cy="-8" rx="11" ry="7" fill="#4a9038" transform="rotate(-10 -10 -8)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="-10 -10 -8; -15 -10 -8; -10 -10 -8" dur="2s" begin="0.3s"
+                                        repeatCount="indefinite" />
+                                </ellipse>
+
+                                <!-- Center leaves -->
+                                <ellipse cx="-3" cy="-10" rx="11" ry="7" fill="#6ab04c" transform="rotate(-5 -3 -10)" />
+                                <ellipse cx="3" cy="-10" rx="11" ry="7" fill="#4a9038" transform="rotate(5 3 -10)" />
+
+                                <!-- Right leaves -->
+                                <ellipse cx="10" cy="-8" rx="11" ry="7" fill="#6ab04c" transform="rotate(10 10 -8)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="10 10 -8; 15 10 -8; 10 10 -8" dur="2s" begin="0.3s"
+                                        repeatCount="indefinite" />
+                                </ellipse>
+                                <ellipse cx="18" cy="-3" rx="10" ry="7" fill="#4a9038" transform="rotate(25 18 -3)">
+                                    <animateTransform attributeName="transform" type="rotate"
+                                        values="25 18 -3; 30 18 -3; 25 18 -3" dur="2s" repeatCount="indefinite" />
+                                </ellipse>
+
+                                <!-- Leaf veins for detail -->
+                                <line x1="-18" y1="-3" x2="-13" y2="-3" stroke="#4a9038" stroke-width="0.5"
+                                    opacity="0.6" />
+                                <line x1="18" y1="-3" x2="13" y2="-3" stroke="#4a9038" stroke-width="0.5"
+                                    opacity="0.6" />
+                            </g>
+
+                            <!-- Subtle highlight on the strawberry -->
+                            <ellipse cx="-9" cy="-5" rx="9" ry="14" fill="white" opacity="0.15" />
+                        </g>
+
+                        <!-- Apple (Center) -->
+                        <g class="apple" transform="translate(200, 200)" filter="url(#fruitShadow_p3)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="200,200; 200,185; 200,200" dur="3.5s" repeatCount="indefinite" />
+
+                            <!-- Apple Body -->
+                            <circle cx="0" cy="0" r="45" fill="url(#appleGrad_p3)" />
+                            <circle cx="0" cy="-10" r="42" fill="url(#appleGrad_p3)" />
+
+                            <!-- Indent at top -->
+                            <ellipse cx="0" cy="-42" rx="10" ry="5" fill="#2d6a4f" opacity="0.5" />
+
+                            <!-- Stem -->
+                            <rect x="-3" y="-60" width="6" height="20" rx="3" fill="url(#stemGrad_p3)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="0 0 -50; 5 0 -50; 0 0 -50" dur="2.5s" repeatCount="indefinite" />
+                            </rect>
+
+                            <!-- Leaf -->
+                            <ellipse cx="15" cy="-50" rx="20" ry="10" fill="#6ab04c" transform="rotate(30 15 -50)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="30 15 -50; 35 15 -50; 30 15 -50" dur="2.5s" repeatCount="indefinite" />
+                            </ellipse>
+
+                            <!-- Highlight -->
+                            <ellipse cx="-15" cy="-15" rx="12" ry="18" fill="white" opacity="0.3" />
+                        </g>
+
+                        <!-- Plum (Between Apple and Cherry) -->
+                        <g class="plum" transform="translate(320, 180)" filter="url(#fruitShadow_p3)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="320,180; 320,170; 320,180" dur="3.2s" repeatCount="indefinite" />
+
+                            <!-- Plum Body - oval shape -->
+                            <ellipse cx="0" cy="0" rx="32" ry="38" fill="url(#plumGrad_p3)" stroke="#6c3483"
+                                stroke-width="1.5" />
+
+                            <!-- Highlight on plum -->
+                            <ellipse cx="-10" cy="-12" rx="10" ry="15" fill="white" opacity="0.25" />
+
+                            <!-- Subtle texture lines -->
+                            <path d="M 0,-35 Q 0,-15 0,0" stroke="#8e44ad" stroke-width="0.5" opacity="0.3"
+                                fill="none" />
+
+                            <!-- Small indent at top -->
+                            <ellipse cx="0" cy="-38" rx="6" ry="3" fill="#5b2c6f" opacity="0.6" />
+
+                            <!-- Stem -->
+                            <rect x="-2" y="-48" width="4" height="12" rx="2" fill="#6b4423">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="0 0 -42; 3 0 -42; 0 0 -42" dur="2.3s" repeatCount="indefinite" />
+                            </rect>
+
+                            <!-- Small leaf -->
+                            <ellipse cx="8" cy="-42" rx="12" ry="6" fill="#6ab04c" transform="rotate(25 8 -42)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="25 8 -42; 30 8 -42; 25 8 -42" dur="2.3s" repeatCount="indefinite" />
+                            </ellipse>
+                        </g>
+
+                        <!-- Cherry (Right) - Two cherries connected -->
+                        <g class="cherry" transform="translate(440, 200)" filter="url(#fruitShadow_p3)">
+                            <animateTransform attributeName="transform" type="translate"
+                                values="440,200; 440,193; 440,200" dur="2.8s" repeatCount="indefinite" />
+
+                            <!-- Stems -->
+                            <path d="M 0,-60 Q -10,-40 -20,-10" stroke="url(#stemGrad_p3)" stroke-width="4" fill="none"
+                                stroke-linecap="round">
+                                <animate attributeName="d"
+                                    values="M 0,-60 Q -10,-40 -20,-10; M 0,-60 Q -12,-40 -20,-10; M 0,-60 Q -10,-40 -20,-10"
+                                    dur="2s" repeatCount="indefinite" />
+                            </path>
+                            <path d="M 0,-60 Q 10,-40 20,-10" stroke="url(#stemGrad_p3)" stroke-width="4" fill="none"
+                                stroke-linecap="round">
+                                <animate attributeName="d"
+                                    values="M 0,-60 Q 10,-40 20,-10; M 0,-60 Q 12,-40 20,-10; M 0,-60 Q 10,-40 20,-10"
+                                    dur="2s" repeatCount="indefinite" />
+                            </path>
+
+                            <!-- Left Cherry -->
+                            <circle cx="-20" cy="0" r="28" fill="url(#cherryGrad_p3)" />
+                            <ellipse cx="-25" cy="-8" rx="8" ry="12" fill="white" opacity="0.3" />
+
+                            <!-- Right Cherry -->
+                            <circle cx="20" cy="0" r="28" fill="url(#cherryGrad_p3)" />
+                            <ellipse cx="15" cy="-8" rx="8" ry="12" fill="white" opacity="0.3" />
+
+                            <!-- Leaf at stem junction -->
+                            <ellipse cx="5" cy="-55" rx="15" ry="8" fill="#6ab04c" transform="rotate(20 5 -55)">
+                                <animateTransform attributeName="transform" type="rotate"
+                                    values="20 5 -55; 25 5 -55; 20 5 -55" dur="2.2s" repeatCount="indefinite" />
+                            </ellipse>
+                        </g>
+
+                        <!-- Sparkles -->
+                        <g class="sparkles">
+                            <circle cx="50" cy="150" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="450" cy="160" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="2.5s" begin="0.5s"
+                                    repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="2.5s" begin="0.5s"
+                                    repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="250" cy="100" r="3" fill="#ffd93d" opacity="0">
+                                <animate attributeName="opacity" values="0;1;0" dur="3s" begin="1s"
+                                    repeatCount="indefinite" />
+                                <animate attributeName="r" values="2;4;2" dur="3s" begin="1s"
+                                    repeatCount="indefinite" />
+                            </circle>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+
+
+
+
+
+    </div>
+
+    <!-- Footer Drawer Backdrop -->
+    <div class="footer-drawer-backdrop" id="footerBackdrop" onclick="toggleFooterDrawer()"></div>
+
+    <!-- Footer Drawer -->
+    <div class="footer-drawer" id="footerDrawer">
+        <div class="footer-drawer-handle" onclick="toggleFooterDrawer()">
+            <span></span>
+        </div>
+        <div class="footer-drawer-grid">
+            <div class="footer-section">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="#">Documentation</a></li>
+                    <li><a href="#">API Docs</a></li>
+                    <li><a href="#">Case Studies</a></li>
+                    <li><a href="#">Support</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">Security Policy</a></li>
+                    <li><a href="#">Compliance</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-copyright">
+            <p>&copy; 2025 Pro-Force Kent Farms. All rights reserved.</p>
+        </div>
+    </div>
+
+    <!-- Footer Trigger Button -->
+    <button class="footer-trigger" id="footerTrigger" onclick="toggleFooterDrawer()" aria-label="Site information">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <!-- Floating Bottom Tab Bar -->
+    <nav class="bottom-tab-bar" id="bottomTabBar">
+        <a href="#home" class="tab-btn active" onclick="showPage('home', event)">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <radialGradient id="homeGradTB" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#c92a2a;stop-opacity:1" />
+                    </radialGradient>
+                </defs>
+                <circle cx="50" cy="50" r="22" fill="url(#homeGradTB)" />
+                <circle cx="50" cy="45" r="20" fill="url(#homeGradTB)" />
+                <ellipse cx="42" cy="42" rx="6" ry="9" fill="white" opacity="0.3" />
+            </svg>
+            <span class="tab-btn-label">Welcome</span>
+        </a>
+        <a href="#faq" class="tab-btn" onclick="showPage('faq', event)">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <radialGradient id="plumGradTB" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#9b59b6;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#6c3483;stop-opacity:1" />
+                    </radialGradient>
+                </defs>
+                <ellipse cx="50" cy="50" rx="18" ry="22" fill="url(#plumGradTB)" stroke="#6c3483" stroke-width="1" />
+                <ellipse cx="44" cy="42" rx="6" ry="9" fill="white" opacity="0.25" />
+                <rect x="49" y="20" width="2" height="8" rx="1" fill="#6b4423" />
+                <ellipse cx="54" cy="24" rx="7" ry="4" fill="#6ab04c" transform="rotate(25 54 24)" />
+            </svg>
+            <span class="tab-btn-label">FAQ</span>
+        </a>
+        <a href="#informations" class="tab-btn" onclick="showPage('informations', event)">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <radialGradient id="appleGradTB" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#c92a2a;stop-opacity:1" />
+                    </radialGradient>
+                </defs>
+                <circle cx="50" cy="50" r="22" fill="url(#appleGradTB)" />
+                <circle cx="50" cy="45" r="20" fill="url(#appleGradTB)" />
+                <rect x="48" y="20" width="4" height="10" rx="2" fill="#6b4423" />
+                <ellipse cx="58" cy="25" rx="10" ry="5" fill="#6ab04c" transform="rotate(30 58 25)" />
+                <ellipse cx="42" cy="42" rx="6" ry="9" fill="white" opacity="0.3" />
+            </svg>
+            <span class="tab-btn-label">Info</span>
+        </a>
+        <a href="#worklist" class="tab-btn" onclick="showPage('worklist', event)">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <radialGradient id="strawberryGradTB" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#c23616;stop-opacity:1" />
+                    </radialGradient>
+                </defs>
+                <ellipse cx="50" cy="52" rx="18" ry="24" fill="url(#strawberryGradTB)" stroke="#c23616" stroke-width="1" />
+                <circle cx="44" cy="44" r="1.2" fill="#ffd93d" opacity="0.9" />
+                <circle cx="50" cy="43" r="1.2" fill="#ffd93d" opacity="0.9" />
+                <circle cx="56" cy="44" r="1.2" fill="#ffd93d" opacity="0.9" />
+                <ellipse cx="44" cy="30" rx="6" ry="4" fill="#6ab04c" transform="rotate(-25 44 30)" />
+                <ellipse cx="50" cy="28" rx="6" ry="4" fill="#6ab04c" />
+                <ellipse cx="56" cy="30" rx="6" ry="4" fill="#6ab04c" transform="rotate(25 56 30)" />
+            </svg>
+            <span class="tab-btn-label">Worklist</span>
+        </a>
+        <a href="#result" class="tab-btn" onclick="showPage('result', event)">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <radialGradient id="cherryGradTB" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#c92a2a;stop-opacity:1" />
+                    </radialGradient>
+                </defs>
+                <circle cx="40" cy="55" r="16" fill="url(#cherryGradTB)" />
+                <circle cx="60" cy="55" r="16" fill="url(#cherryGradTB)" />
+                <ellipse cx="37" cy="50" rx="5" ry="7" fill="white" opacity="0.3" />
+                <ellipse cx="57" cy="50" rx="5" ry="7" fill="white" opacity="0.3" />
+                <path d="M 50,25 Q 42,35 40,42" stroke="#6b4423" stroke-width="2.5" fill="none" />
+                <path d="M 50,25 Q 58,35 60,42" stroke="#6b4423" stroke-width="2.5" fill="none" />
+                <ellipse cx="54" cy="24" rx="8" ry="5" fill="#6ab04c" transform="rotate(20 54 24)" />
+            </svg>
+            <span class="tab-btn-label">Result</span>
+        </a>
+    </nav>
+
+    <script>
+        function toggleFooterDrawer() {
+            var drawer = document.getElementById('footerDrawer');
+            var backdrop = document.getElementById('footerBackdrop');
+            var trigger = document.getElementById('footerTrigger');
+            drawer.classList.toggle('open');
+            backdrop.classList.toggle('active');
+            trigger.classList.toggle('active');
+        }
+
+        function showPage(pageId, event) {
+            event.preventDefault();
+
+            // Hide all pages
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+
+            // Remove active class from all tab buttons
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+
+            // Add active class to clicked button
+            event.target.closest('.tab-btn').classList.add('active');
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        function toggleFAQ(element) {
+            element.classList.toggle('open');
+        }
+
+        function showSchedule(type) {
+            document.getElementById('worklist-categories').style.display = 'none';
+            var scheduleEl = document.getElementById('schedule-' + type);
+            scheduleEl.style.display = 'block';
+
+            var tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            var dateStr = tomorrow.toLocaleDateString('en-GB', options);
+            var dateEls = scheduleEl.querySelectorAll('.schedule-date');
+            dateEls.forEach(function (el) { el.textContent = dateStr; });
+        }
+
+        function backToCategories() {
+            document.getElementById('worklist-categories').style.display = 'block';
+            document.getElementById('schedule-top-fruits').style.display = 'none';
+            document.getElementById('schedule-soft-fruits').style.display = 'none';
+        }
+
+        // Multilingual hero text rotation
+        (function () {
+            const translations = [
+                "Welcome to Pro-Force Kent Farms",
+                "Bun venit la Pro-Force Kent Farms",
+                "Добре дошли в Pro-Force Kent Farms",
+                "Добро пожаловать в Pro-Force Kent Farms",
+                "Witamy w Pro-Force Kent Farms",
+                "Laipni lūdzam Pro-Force Kent Farms",
+                "Ласкаво просимо до Pro-Force Kent Farms"
+            ];
+
+            let current = 0;
+            const heroTitle = document.getElementById('heroTitle');
+            if (!heroTitle) return;
+
+            function cycle() {
+                const span = heroTitle.querySelector('.hero-text');
+                if (!span) return;
+
+                span.style.animation = 'none';
+                void span.offsetWidth;
+                span.style.animation = 'outDissolve 1s ease forwards';
+
+                setTimeout(function () {
+                    current = (current + 1) % translations.length;
+                    span.textContent = translations[current];
+
+                    span.style.animation = 'none';
+                    void span.offsetWidth;
+                    span.style.animation = 'inDissolve 1s ease forwards';
+                }, 1000);
+            }
+
+            setInterval(cycle, 7000);
+        })();
+
+        // Hide tab bar on scroll down, show on scroll up (mobile UX)
+        (function() {
+            let lastScroll = 0;
+            const tabBar = document.getElementById('bottomTabBar');
+            if (!tabBar) return;
+
+            window.addEventListener('scroll', function() {
+                const currentScroll = window.pageYOffset;
+                if (currentScroll > lastScroll && currentScroll > 200) {
+                    tabBar.style.transform = window.innerWidth <= 768
+                        ? 'translateY(100%)'
+                        : 'translateX(-50%) translateY(calc(100% + 30px))';
+                    tabBar.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                } else {
+                    tabBar.style.transform = window.innerWidth <= 768
+                        ? 'translateY(0)'
+                        : 'translateX(-50%) translateY(0)';
+                    tabBar.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                }
+                lastScroll = currentScroll;
+            }, { passive: true });
+        })();
+    </script>
 </body>
+
 </html>
